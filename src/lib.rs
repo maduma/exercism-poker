@@ -29,6 +29,12 @@ enum CardValue {
     Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten,
     Jack, Queen, King, Ace,
 }
+
+const _cardValues = [
+    CardValue::Two, CardValue::Three, CardValue::Four, CardValue::Five,
+    CardValue::Six, CardValue::Seven, CardValue::Eight, CardValue::Nine, CardValue::Ten,
+    CardValue::Jack, CardValue::Queen, CardValue::King, CardValue::Ace,
+]
 struct ParseCardValueError;
 
 impl CardValue {
