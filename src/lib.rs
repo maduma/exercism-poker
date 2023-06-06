@@ -78,8 +78,8 @@ struct ParseCardError<'a>(&'a str);
 
 #[derive(Debug)]
 struct Card {
-    suit: CardSuit,
     value: CardValue,
+    suit: CardSuit,
 }
 
 impl Card {
@@ -98,8 +98,14 @@ struct ParseHandError<'a>(&'a str);
 
 impl Hand<'_> {
     fn from_str(s: &str) -> Result<Hand, ParseHandError> {
-        let c = Card::from_str(s);
-        println!("{:?}", c);
+        let mut cards: Vec<Card> = vec![];
+        for card in s.split(" ").collect::<Vec<_>>() {
+            match Card::from_str(card) {
+                Ok(c) => cards.push(c),
+                Err(e) => println!("{:?}", e),
+            }
+        }
+        println!("{:?}", cards);
         Ok(Hand::HighCard(s))
     }
 }
@@ -122,6 +128,6 @@ impl<'a> PartialOrd for Hand<'a> {
 }
 
 pub fn winning_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
-    println!("{:?}", Hand::from_str("4H"));
+    println!("{:?}", Hand::from_str("6C 6D 6H KD KS"));
     unimplemented!("Out of {hands:?}, which hand wins?")
 }
