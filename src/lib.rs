@@ -74,9 +74,23 @@ impl CardValue {
 }
 
 #[derive(Debug)]
+struct ParseCardError<'a>(&'a str);
+
+#[derive(Debug)]
 struct Card {
     suit: CardSuit,
     value: CardValue,
+}
+
+impl Card {
+    fn from_str(s: &str) -> Result<Card, ParseCardError> {
+        let value = CardValue::from_str(&s[..s.len()-1]);
+        let suit = CardSuit::from_str(&s[s.len()-1..]);
+        match (value, suit) {
+            (Ok(v), Ok(s)) => Ok(Card {suit: s, value: v}),
+            _ => Err(ParseCardError(s)),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -84,10 +98,9 @@ struct ParseHandError<'a>(&'a str);
 
 impl Hand<'_> {
     fn from_str(s: &str) -> Result<Hand, ParseHandError> {
-        let val = CardValue::from_str(&s[..s.len()-1]);
-        let suit = CardSuit::from_str(&s[s.len()-1..]);
-        println!("{:?} {:?}", val, suit);
-        Ok(Hand::FourOfAKind(s))
+        let c = Card::from_str(s);
+        println!("{:?}", c);
+        Ok(Hand::HighCard(s))
     }
 }
 
