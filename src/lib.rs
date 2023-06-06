@@ -21,41 +21,72 @@ enum Hand<'a> {
     HighCard(&'a str),
 }
 
+#[derive(Debug)]
 enum CardSuit {
     Club, Diamond, Heart, Spade,
 }
 
+#[derive(Debug)]
+struct ParseCardSuitError;
+
+impl CardSuit {
+    fn from_str(s: &str) -> Result<CardSuit, ParseCardSuitError> {
+        match s {
+            "C" => Ok(CardSuit::Club),
+            "D" => Ok(CardSuit::Diamond),
+            "H" => Ok(CardSuit::Heart),
+            "S" => Ok(CardSuit::Spade),
+            _ => Err(ParseCardSuitError),
+        }
+    }
+}
+
+#[derive(Debug)]
+#[derive(Copy, Clone)]
 enum CardValue {
-    Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten,
+    Two = 0, Three = 1, Four = 2, Five = 3, Six = 4, Seven = 5, Eight = 6, Nine = 7, Ten = 8,
     Jack, Queen, King, Ace,
 }
 
-const _cardValues = [
-    CardValue::Two, CardValue::Three, CardValue::Four, CardValue::Five,
-    CardValue::Six, CardValue::Seven, CardValue::Eight, CardValue::Nine, CardValue::Ten,
-    CardValue::Jack, CardValue::Queen, CardValue::King, CardValue::Ace,
-]
+#[derive(Debug)]
 struct ParseCardValueError;
 
 impl CardValue {
     fn from_str(s: &str) -> Result<CardValue, ParseCardValueError> {
-        Ok(CardValue::Ace)
+        const CARDVALUES: [CardValue; 13] = [
+            CardValue::Two, CardValue::Three, CardValue::Four, CardValue::Five,
+            CardValue::Six, CardValue::Seven, CardValue::Eight, CardValue::Nine, CardValue::Ten,
+            CardValue::Jack, CardValue::Queen, CardValue::King, CardValue::Ace,
+        ];
+        match s.parse::<usize>() {
+            Ok(i) => {
+                if i >=2 && i <=10 { Ok(CARDVALUES[i - 2]) } else { Err(ParseCardValueError) }
+            },
+            Err(_) => match s {
+                "J" => Ok(CardValue::Jack),
+                "Q" => Ok(CardValue::Queen),
+                "K" => Ok(CardValue::King),
+                "A" => Ok(CardValue::Ace),
+                _ => Err(ParseCardValueError),
+            }
+        }
     }
 }
 
+#[derive(Debug)]
 struct Card {
     suit: CardSuit,
     value: CardValue,
 }
 
 #[derive(Debug)]
-struct ParseHandError;
+struct ParseHandError<'a>(&'a str);
 
 impl Hand<'_> {
     fn from_str(s: &str) -> Result<Hand, ParseHandError> {
-        let cards: Vec<&str> = s.split(" ").collect();
-        println!("{:?}", cards);
-        if cards.len() != 5 { return Err(ParseHandError) }
+        let val = CardValue::from_str(&s[..s.len()-1]);
+        let suit = CardSuit::from_str(&s[s.len()-1..]);
+        println!("{:?} {:?}", val, suit);
         Ok(Hand::FourOfAKind(s))
     }
 }
@@ -78,6 +109,6 @@ impl<'a> PartialOrd for Hand<'a> {
 }
 
 pub fn winning_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
-    println!("{:?}", Hand::from_str("hello"));
+    println!("{:?}", Hand::from_str("4H"));
     unimplemented!("Out of {hands:?}, which hand wins?")
 }
