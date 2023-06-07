@@ -75,7 +75,7 @@ impl Card {
 #[derive(Debug, PartialEq, PartialOrd)]
 enum Rank {
     HighCard,
-    OnePair,
+    OnePair(u8, u8, u8, u8),
     TwoPair(u8, u8, u8),
     ThreeOFAKind(u8, u8, u8),
     Straight(u8),
