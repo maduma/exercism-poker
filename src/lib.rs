@@ -77,7 +77,8 @@ impl Card {
 }
 
 
-#[derive(Debug, PartialEq)]
+#[allow(dead_code)]
+#[derive(Debug, PartialEq, PartialOrd)]
 enum Rank {
     HighCard,
     OnePair,
@@ -129,7 +130,7 @@ impl Hand<'_> {
         if is_flush(&cards) {
             Ok(Hand {cards: cards, src: s, rank: Rank::Flush})
         } else {
-            Ok(Hand {cards: cards, src: s, rank: Rank::FullHouse})
+            Ok(Hand {cards: cards, src: s, rank: Rank::HighCard})
         }
     }
 }
@@ -154,5 +155,6 @@ impl<'a> PartialOrd for Hand<'a> {
 pub fn winning_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
     println!("{:?}", Hand::from_str("KC 6D 2H 3D QS"));
     println!("{:?}", Hand::from_str("KC 6C 2C 3C QC"));
+    println!("{:?}", Rank::FourOfAKind == Rank::FourOfAKind);
     unimplemented!("Out of {hands:?}, which hand wins?")
 }
