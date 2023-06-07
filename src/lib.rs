@@ -1,27 +1,7 @@
-/// Given a list of poker hands, return a list of those hands which win.
-///
-/// Note the type signature: this function should return _the same_ reference to
-/// the winning hand(s) as were passed in, not reconstructed strings which happen to be equal.
-/// 
-/// 
 use std::cmp::{PartialOrd, Ordering};
+use std::collections::BTreeSet;
 
-#[derive(Debug)]
-#[derive(PartialEq)]
-#[allow(dead_code)]
-enum Hand<'a> {
-    StraightFlush(&'a str),
-    FourOfAKind(&'a str),
-    FullHouse(&'a str),
-    Flush(&'a str),
-    Straight(&'a str),
-    ThreeOFAKind(&'a str),
-    TwoPair(&'a str),
-    OnePair(&'a str),
-    HighCard(&'a str),
-}
-
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum CardSuit {
     Club, Diamond, Heart, Spade,
 }
@@ -42,7 +22,7 @@ impl CardSuit {
 }
 
 #[derive(Debug)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 enum CardValue {
     Two = 0, Three = 1, Four = 2, Five = 3, Six = 4, Seven = 5, Eight = 6, Nine = 7, Ten = 8,
     Jack, Queen, King, Ace,
@@ -76,11 +56,14 @@ impl CardValue {
 #[derive(Debug)]
 struct ParseCardError<'a>(&'a str);
 
-#[derive(Debug)]
+#[allow(dead_code)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct Card {
     value: CardValue,
     suit: CardSuit,
 }
+
+
 
 impl Card {
     fn from_str(s: &str) -> Result<Card, ParseCardError> {
@@ -93,20 +76,57 @@ impl Card {
     }
 }
 
+
+#[derive(Debug, PartialEq)]
+enum Rank {
+    HighCard,
+    OnePair,
+    TwoPair,
+    ThreeOFAKind,
+    Straight,
+    Flush,
+    FullHouse,
+    FourOfAKind,
+    StraightFlush,
+}
+
+#[derive(Debug, PartialEq)]
+struct Hand<'a> {
+    cards: BTreeSet<Card>,
+    src: &'a str,
+    rank: Rank,
+}
+
 #[derive(Debug)]
 struct ParseHandError<'a>(&'a str);
 
+fn is_flush(_cards: &Vec<Card>) -> bool {
+    let suit = _cards.first().unwrap().suit;
+   _cards.iter().all(|c| c.suit == suit)
+}
+
 impl Hand<'_> {
     fn from_str(s: &str) -> Result<Hand, ParseHandError> {
-        let mut cards: Vec<Card> = vec![];
-        for card in s.split(" ").collect::<Vec<_>>() {
+        let mut cards =  BTreeSet::<Card>::new();
+        let cards_str = s.split(" ").collect::<Vec<_>>();
+        if cards_str.len() != 5 {
+            let err =  ParseHandError(s);
+            println!("{:?}", err);
+            return Err(err);
+        }
+        for card in cards_str {
             match Card::from_str(card) {
-                Ok(c) => cards.push(c),
-                Err(e) => println!("{:?}", e),
+                Ok(c) => if !cards.insert(c) {
+                    println!("Duplicate cards {:?}", card);
+                    return Err(ParseHandError(s))
+                },
+                Err(e) => {
+                    println!("{:?}", e);
+                    return Err(ParseHandError(s));
+                }
             }
         }
-        println!("{:?}", cards);
-        Ok(Hand::HighCard(s))
+        Ok(Hand {cards: cards, src: s, rank: Rank::FullHouse})
     }
 }
 
@@ -128,6 +148,6 @@ impl<'a> PartialOrd for Hand<'a> {
 }
 
 pub fn winning_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
-    println!("{:?}", Hand::from_str("6C 6D 6H KD KS"));
+    println!("{:?}", Hand::from_str("KC 6D 2H 3D QS"));
     unimplemented!("Out of {hands:?}, which hand wins?")
 }
