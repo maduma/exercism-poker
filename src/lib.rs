@@ -100,7 +100,7 @@ struct Hand<'a> {
 #[derive(Debug)]
 struct ParseHandError<'a>(&'a str);
 
-fn is_flush(_cards: &Vec<Card>) -> bool {
+fn is_flush(_cards: &BTreeSet<Card>) -> bool {
     let suit = _cards.first().unwrap().suit;
    _cards.iter().all(|c| c.suit == suit)
 }
@@ -126,7 +126,11 @@ impl Hand<'_> {
                 }
             }
         }
-        Ok(Hand {cards: cards, src: s, rank: Rank::FullHouse})
+        if is_flush(&cards) {
+            Ok(Hand {cards: cards, src: s, rank: Rank::Flush})
+        } else {
+            Ok(Hand {cards: cards, src: s, rank: Rank::FullHouse})
+        }
     }
 }
 
@@ -149,5 +153,6 @@ impl<'a> PartialOrd for Hand<'a> {
 
 pub fn winning_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
     println!("{:?}", Hand::from_str("KC 6D 2H 3D QS"));
+    println!("{:?}", Hand::from_str("KC 6C 2C 3C QC"));
     unimplemented!("Out of {hands:?}, which hand wins?")
 }
