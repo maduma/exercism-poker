@@ -7,16 +7,16 @@ enum CardSuit {
 }
 
 #[derive(Debug)]
-struct ParseCardSuitError;
+struct ParseError;
 
 impl CardSuit {
-    fn from_str(s: &str) -> Result<CardSuit, ParseCardSuitError> {
+    fn from_str(s: &str) -> Result<CardSuit, ParseError> {
         match s {
             "C" => Ok(CardSuit::Club),
             "D" => Ok(CardSuit::Diamond),
             "H" => Ok(CardSuit::Heart),
             "S" => Ok(CardSuit::Spade),
-            _ => Err(ParseCardSuitError),
+            _ => Err(ParseError),
         }
     }
 }
@@ -28,11 +28,8 @@ enum CardValue {
     Jack, Queen, King, Ace,
 }
 
-#[derive(Debug)]
-struct ParseCardValueError;
-
 impl CardValue {
-    fn from_str(s: &str) -> Result<CardValue, ParseCardValueError> {
+    fn from_str(s: &str) -> Result<CardValue, ParseError> {
         const CARDVALUES: [CardValue; 13] = [
             CardValue::Two, CardValue::Three, CardValue::Four, CardValue::Five,
             CardValue::Six, CardValue::Seven, CardValue::Eight, CardValue::Nine, CardValue::Ten,
@@ -40,21 +37,18 @@ impl CardValue {
         ];
         match s.parse::<usize>() {
             Ok(i) => {
-                if i >=2 && i <=10 { Ok(CARDVALUES[i - 2]) } else { Err(ParseCardValueError) }
+                if i >=2 && i <=10 { Ok(CARDVALUES[i - 2]) } else { Err(ParseError) }
             },
             Err(_) => match s {
                 "J" => Ok(CardValue::Jack),
                 "Q" => Ok(CardValue::Queen),
                 "K" => Ok(CardValue::King),
                 "A" => Ok(CardValue::Ace),
-                _ => Err(ParseCardValueError),
+                _ => Err(ParseError),
             }
         }
     }
 }
-
-#[derive(Debug)]
-struct ParseCardError<'a>(&'a str);
 
 #[allow(dead_code)]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -66,12 +60,12 @@ struct Card {
 
 
 impl Card {
-    fn from_str(s: &str) -> Result<Card, ParseCardError> {
-        let value = CardValue::from_str(&s[..s.len()-1]);
+    fn from_str(s: &str) -> Result<Card, ParseError> {
+        let value: Result<CardValue, ParseError> = CardValue::from_str(&s[..s.len()-1]);
         let suit = CardSuit::from_str(&s[s.len()-1..]);
         match (value, suit) {
             (Ok(v), Ok(s)) => Ok(Card {suit: s, value: v}),
-            _ => Err(ParseCardError(s)),
+            _ => Err(ParseError),
         }
     }
 }
