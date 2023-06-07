@@ -24,7 +24,7 @@ impl CardSuit {
 #[derive(Debug)]
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 enum CardValue {
-    Two = 0, Three = 1, Four = 2, Five = 3, Six = 4, Seven = 5, Eight = 6, Nine = 7, Ten = 8,
+    Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten,
     Jack, Queen, King, Ace,
 }
 
@@ -76,13 +76,13 @@ impl Card {
 enum Rank {
     HighCard,
     OnePair,
-    TwoPair,
-    ThreeOFAKind,
-    Straight,
+    TwoPair(u8, u8, u8),
+    ThreeOFAKind(u8, u8, u8),
+    Straight(u8),
     Flush,
-    FullHouse,
-    FourOfAKind,
-    StraightFlush,
+    FullHouse(u8, u8),
+    FourOfAKind(u8, u8),
+    StraightFlush(u8),
 }
 
 #[derive(Debug, PartialEq)]
@@ -149,6 +149,7 @@ impl<'a> PartialOrd for Hand<'a> {
 pub fn winning_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
     println!("{:?}", Hand::from_str("KC 6D 2H 3D QS"));
     println!("{:?}", Hand::from_str("KC 6C 2C 3C QC"));
-    println!("{:?}", Rank::FourOfAKind == Rank::FourOfAKind);
+    println!("{:?}", Rank::HighCard == Rank::HighCard);
+    println!("{:?}", (2, 0, 5) > (2, 1, 3));
     unimplemented!("Out of {hands:?}, which hand wins?")
 }
