@@ -24,8 +24,7 @@ impl CardSuit {
 #[derive(Debug)]
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 enum CardValue {
-    Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten,
-    Jack, Queen, King, Ace,
+    Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten, Jack, Queen, King, Ace,
 }
 
 impl CardValue {
@@ -56,8 +55,6 @@ struct Card {
     value: CardValue,
     suit: CardSuit,
 }
-
-
 
 impl Card {
     fn from_str(s: &str) -> Result<Card, ParseError> {
