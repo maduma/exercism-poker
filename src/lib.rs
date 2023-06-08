@@ -213,7 +213,10 @@ impl<'a> PartialOrd for Hand<'a> {
         if self.rank != other.rank {
             self.rank.partial_cmp(&other.rank)
         } else {
-            Some(Ordering::Equal)
+            match self.rank {
+                Rank::Straight | Rank::StraightFlush => self.cards.first().unwrap().partial_cmp(other.cards.first().unwrap()),
+                _ => Some(Ordering::Less),
+            }   
         }
     }
 }
