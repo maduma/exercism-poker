@@ -211,7 +211,7 @@ impl Hand<'_> {
 impl<'a> PartialOrd for Hand<'a> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         if self.rank != other.rank {
-            self.partial_cmp(other)
+            self.rank.partial_cmp(&other.rank)
         } else {
             Some(Ordering::Equal)
         }
@@ -219,14 +219,18 @@ impl<'a> PartialOrd for Hand<'a> {
 }
 
 pub fn winning_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
-    println!("{:?}", Hand::from_str("5C 6C 7C 8C 9C"));
-    println!("{:?}", Hand::from_str("JC JD JH JS 9S"));
-    println!("{:?}", Hand::from_str("5C 5D 7H 7D 5S"));
-    println!("{:?}", Hand::from_str("5C 6C 8C 10C JC"));
-    println!("{:?}", Hand::from_str("5C 6D 7H 8D 9S"));
-    println!("{:?}", Hand::from_str("5C 5D 7H 6D 5S"));
-    println!("{:?}", Hand::from_str("5C 5D 7H 7D AS"));
-    println!("{:?}", Hand::from_str("5C 4D 7H AD AS"));
-    println!("{:?}", Hand::from_str("5C 4D 7H AD JS"));
-    unimplemented!("Out of {hands:?}, which hand wins?")
+    // println!("{:?}", Hand::from_str("5C 6C 7C 8C 9C"));
+    // println!("{:?}", Hand::from_str("JC JD JH JS 9S"));
+    // println!("{:?}", Hand::from_str("5C 5D 7H 7D 5S"));
+    // println!("{:?}", Hand::from_str("5C 6C 8C 10C JC"));
+    // println!("{:?}", Hand::from_str("5C 6D 7H 8D 9S"));
+    // println!("{:?}", Hand::from_str("5C 5D 7H 6D 5S"));
+    // println!("{:?}", Hand::from_str("5C 5D 7H 7D AS"));
+    // println!("{:?}", Hand::from_str("5C 4D 7H AD AS"));
+    // println!("{:?}", Hand::from_str("5C 4D 7H AD JS"));
+    
+    let mut hands = hands.iter().map(|h| Hand::from_str(h).unwrap()).collect::<Vec<Hand>>();
+    hands.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Less));
+    hands.reverse();
+    hands.iter().map(|h| h.src).collect()
 }

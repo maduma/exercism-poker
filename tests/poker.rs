@@ -25,7 +25,7 @@ fn test_single_hand_always_wins() {
 }
 
 #[test]
-#[ignore]
+// #[ignore]
 fn test_duplicate_hands_always_tie() {
     let input = &["3S 4S 5D 6H JH", "3S 4S 5D 6H JH", "3S 4S 5D 6H JH"];
     assert_eq!(&winning_hands(input), input)
@@ -63,7 +63,7 @@ fn test_high_card_can_be_low_card_in_an_otherwise_tie() {
 }
 
 #[test]
-#[ignore]
+// #[ignore]
 fn test_one_pair_beats_high_card() {
     test(&["4S 5H 6C 8D KH", "2S 4H 6S 4D JH"], &["2S 4H 6S 4D JH"])
 }
