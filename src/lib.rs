@@ -1,5 +1,6 @@
 use std::cmp::{PartialOrd, Ordering};
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
+use std::fmt;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum CardSuit {
@@ -22,7 +23,7 @@ impl CardSuit {
 }
 
 #[derive(Debug)]
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum CardValue {
     Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten, Jack, Queen, King, Ace,
 }
@@ -75,33 +76,93 @@ impl Card {
 #[derive(Debug, PartialEq, PartialOrd)]
 enum Rank {
     HighCard,
-    OnePair(u8, u8, u8, u8),
-    TwoPair(u8, u8, u8),
-    ThreeOFAKind(u8, u8, u8),
+    OnePair,
+    TwoPair,
+    ThreeOFAKind,
     Straight,
     Flush,
-    FullHouse(u8, u8),
-    FourOfAKind(u8, u8),
+    FullHouse,
+    FourOfAKind,
     StraightFlush,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(PartialEq)]
 struct Hand<'a> {
     cards: BTreeSet<Card>,
     src: &'a str,
     rank: Rank,
 }
 
+impl fmt::Debug for Hand<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?} ({})", self.rank, self.src)
+    }
+}
+
 #[derive(Debug)]
 struct ParseHandError<'a>(&'a str);
 
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+enum Tuple {
+    Single,
+    Pair,
+    Triad,
+    Quad,
+}
+
+fn frequencies(values: Vec<CardValue>) -> HashMap<Tuple, Vec<CardValue>> {
+    let mut h1 = HashMap::<CardValue, u8>::new();
+    let mut h2: HashMap<Tuple, Vec<CardValue>> = HashMap::new();
+    for v in values {
+        h1.entry(v).and_modify(|count| *count += 1).or_insert(1);
+    }
+    for (k, count) in h1 {
+        h2.entry(match count {
+            1 => Tuple::Single,
+            2 => Tuple::Pair,
+            3 => Tuple::Triad,
+            4 => Tuple::Quad,
+            _ => panic!("More that 4 fo the same cards!"),
+        }).or_insert(Vec::new()).push(k);
+    }
+    h2
+}
+
 fn is_flush(cards: &BTreeSet<Card>) -> bool {
-    let suit = cards.first().unwrap().suit;
-    cards.iter().all(|c| c.suit == suit)
+    cards.iter().zip(cards.iter().skip(1)).all(|(c1, c2)| c1.suit == c2.suit)
 }
 
 fn is_straight(cards: &BTreeSet<Card>) -> bool {
     cards.iter().zip(cards.iter().skip(1)).all(|(c1, c2)| c1.is_adjacent(c2))
+}
+
+fn is_four_of_a_kind(cards: &BTreeSet<Card>) -> bool {
+    let values = cards.iter().map(|c| c.value).collect::<Vec<CardValue>>();
+    let freq = frequencies(values);
+    freq.contains_key(&Tuple::Quad)
+}
+
+fn have_one_pair(cards: &BTreeSet<Card>) -> bool {
+    let values = cards.iter().map(|c| c.value).collect::<Vec<CardValue>>();
+    let freq = frequencies(values);
+    freq.contains_key(&Tuple::Pair)
+}
+
+fn have_two_pair(cards: &BTreeSet<Card>) -> bool {
+    let values = cards.iter().map(|c| c.value).collect::<Vec<CardValue>>();
+    let freq = frequencies(values);
+    freq.contains_key(&Tuple::Pair) && freq.get(&Tuple::Pair).unwrap().len() == 2
+}
+
+fn have_three_of_a_kind(cards: &BTreeSet<Card>) -> bool {
+    let values = cards.iter().map(|c| c.value).collect::<Vec<CardValue>>();
+    let freq = frequencies(values);
+    freq.contains_key(&Tuple::Triad)
+}
+
+fn is_full_house(cards: &BTreeSet<Card>) -> bool {
+    have_three_of_a_kind(cards) && have_one_pair(cards)
 }
 
 impl Hand<'_> {
@@ -127,10 +188,20 @@ impl Hand<'_> {
         }
         if is_straight(&cards) && is_flush(&cards) {
             Ok(Hand {cards: cards, src: s, rank: Rank::StraightFlush})
+        } else if is_four_of_a_kind(&cards) {
+            Ok(Hand {cards: cards, src: s, rank: Rank::FourOfAKind})
+        } else if is_full_house(&cards) {
+            Ok(Hand {cards: cards, src: s, rank: Rank::FullHouse})
         } else if is_flush(&cards) {
             Ok(Hand {cards: cards, src: s, rank: Rank::Flush})
         } else if is_straight(&cards) {
             Ok(Hand {cards: cards, src: s, rank: Rank::Straight})
+        } else if have_three_of_a_kind(&cards) {
+            Ok(Hand {cards: cards, src: s, rank: Rank::ThreeOFAKind})
+        } else if have_two_pair(&cards) {
+            Ok(Hand {cards: cards, src: s, rank: Rank::TwoPair})
+        } else if have_one_pair(&cards) {
+            Ok(Hand {cards: cards, src: s, rank: Rank::OnePair})
         } else {
             Ok(Hand {cards: cards, src: s, rank: Rank::HighCard})
         }
@@ -138,28 +209,24 @@ impl Hand<'_> {
 }
 
 impl<'a> PartialOrd for Hand<'a> {
-    fn partial_cmp(&self, _other: &Self) -> Option<std::cmp::Ordering> {
-        Some(Ordering::Equal)
-        //five of a kind  - 3C (club), 3D (diamond), 3H (heart), 3S (spade), J (jocker)
-        //straight flush  - 3C 4C 5C 6C 7C
-        //four of a kind
-        //full house      - 6C 6D 6H KD KS
-        //flush           - 2C 7C 8C JC QC
-        //straight        - 3C 4D 5C 6S 7H
-        //Three of a kind
-        //two pair
-        //one pair    
-        //high card
-
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        if self.rank != other.rank {
+            self.partial_cmp(other)
+        } else {
+            Some(Ordering::Equal)
+        }
     }
 }
 
 pub fn winning_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
-    println!("{:?}", Hand::from_str("5C 6D 7H 8D 9S"));
     println!("{:?}", Hand::from_str("5C 6C 7C 8C 9C"));
-    println!("{:?}", Hand::from_str("KC 6D 2H 3D QS"));
-    println!("{:?}", Hand::from_str("KC 6C 2C 3C QC"));
-    println!("{:?}", Rank::HighCard == Rank::HighCard);
-    println!("{:?}", (2, 0, 5) > (2, 1, 3));
+    println!("{:?}", Hand::from_str("JC JD JH JS 9S"));
+    println!("{:?}", Hand::from_str("5C 5D 7H 7D 5S"));
+    println!("{:?}", Hand::from_str("5C 6C 8C 10C JC"));
+    println!("{:?}", Hand::from_str("5C 6D 7H 8D 9S"));
+    println!("{:?}", Hand::from_str("5C 5D 7H 6D 5S"));
+    println!("{:?}", Hand::from_str("5C 5D 7H 7D AS"));
+    println!("{:?}", Hand::from_str("5C 4D 7H AD AS"));
+    println!("{:?}", Hand::from_str("5C 4D 7H AD JS"));
     unimplemented!("Out of {hands:?}, which hand wins?")
 }
