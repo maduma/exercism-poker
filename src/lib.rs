@@ -65,6 +65,9 @@ impl Card {
             _ => Err(ParseError),
         }
     }
+    fn is_adjacent(self: &Self, other: &Self) -> bool {
+        (self.value as i8 - other.value as i8).abs() == 1
+    }
 }
 
 
@@ -75,11 +78,11 @@ enum Rank {
     OnePair(u8, u8, u8, u8),
     TwoPair(u8, u8, u8),
     ThreeOFAKind(u8, u8, u8),
-    Straight(u8),
+    Straight,
     Flush,
     FullHouse(u8, u8),
     FourOfAKind(u8, u8),
-    StraightFlush(u8),
+    StraightFlush,
 }
 
 #[derive(Debug, PartialEq)]
@@ -92,9 +95,13 @@ struct Hand<'a> {
 #[derive(Debug)]
 struct ParseHandError<'a>(&'a str);
 
-fn is_flush(_cards: &BTreeSet<Card>) -> bool {
-    let suit = _cards.first().unwrap().suit;
-   _cards.iter().all(|c| c.suit == suit)
+fn is_flush(cards: &BTreeSet<Card>) -> bool {
+    let suit = cards.first().unwrap().suit;
+    cards.iter().all(|c| c.suit == suit)
+}
+
+fn is_straight(cards: &BTreeSet<Card>) -> bool {
+    cards.iter().zip(cards.iter().skip(1)).all(|(c1, c2)| c1.is_adjacent(c2))
 }
 
 impl Hand<'_> {
@@ -118,8 +125,12 @@ impl Hand<'_> {
                 }
             }
         }
-        if is_flush(&cards) {
+        if is_straight(&cards) && is_flush(&cards) {
+            Ok(Hand {cards: cards, src: s, rank: Rank::StraightFlush})
+        } else if is_flush(&cards) {
             Ok(Hand {cards: cards, src: s, rank: Rank::Flush})
+        } else if is_straight(&cards) {
+            Ok(Hand {cards: cards, src: s, rank: Rank::Straight})
         } else {
             Ok(Hand {cards: cards, src: s, rank: Rank::HighCard})
         }
@@ -144,6 +155,8 @@ impl<'a> PartialOrd for Hand<'a> {
 }
 
 pub fn winning_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
+    println!("{:?}", Hand::from_str("5C 6D 7H 8D 9S"));
+    println!("{:?}", Hand::from_str("5C 6C 7C 8C 9C"));
     println!("{:?}", Hand::from_str("KC 6D 2H 3D QS"));
     println!("{:?}", Hand::from_str("KC 6C 2C 3C QC"));
     println!("{:?}", Rank::HighCard == Rank::HighCard);
