@@ -123,7 +123,7 @@ fn frequencies(values: Vec<CardValue>) -> HashMap<Tuple, BTreeSet<CardValue>> {
             2 => Tuple::Pair,
             3 => Tuple::Triad,
             4 => Tuple::Quad,
-            _ => panic!("More that 4 fo the same cards!"),
+            _ => panic!("More that 4 cards with the same value!"),
         }).or_insert(BTreeSet::new()).insert(k);
     }
     h2
