@@ -2,34 +2,30 @@ use std::cmp::{PartialOrd, Ordering};
 use std::collections::{BTreeSet, HashMap};
 use std::fmt;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 enum CardSuit {
     Club, Diamond, Heart, Spade,
 }
 
-#[derive(Debug)]
-struct ParseError;
-
 impl CardSuit {
-    fn from_str(s: &str) -> Result<CardSuit, ParseError> {
+    fn from_str(s: &str) -> CardSuit {
         match s {
-            "C" => Ok(CardSuit::Club),
-            "D" => Ok(CardSuit::Diamond),
-            "H" => Ok(CardSuit::Heart),
-            "S" => Ok(CardSuit::Spade),
-            _ => Err(ParseError),
+            "C" => CardSuit::Club,
+            "D" => CardSuit::Diamond,
+            "H" => CardSuit::Heart,
+            "S" => CardSuit::Spade,
+            _ => panic!("Bad suit: {}", s),
         }
     }
 }
 
-#[derive(Debug)]
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum CardValue { // Ace may have a value of One
     One, Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten, Jack, Queen, King, Ace,
 }
 
 impl CardValue {
-    fn from_str(s: &str) -> Result<CardValue, ParseError> {
+    fn from_str(s: &str) -> CardValue {
         const CARDVALUES: [CardValue; 14] = [
             CardValue::One, CardValue::Two, CardValue::Three, CardValue::Four, CardValue::Five,
             CardValue::Six, CardValue::Seven, CardValue::Eight, CardValue::Nine, CardValue::Ten,
@@ -37,20 +33,19 @@ impl CardValue {
         ];
         match s.parse::<usize>() {
             Ok(i) => {
-                if i >=2 && i <=10 { Ok(CARDVALUES[i - 1]) } else { Err(ParseError) }
+                if i >=2 && i <=10 { CARDVALUES[i - 1] } else { panic!("Bad value: {}", s) }
             },
             Err(_) => match s {
-                "J" => Ok(CardValue::Jack),
-                "Q" => Ok(CardValue::Queen),
-                "K" => Ok(CardValue::King),
-                "A" => Ok(CardValue::Ace),
-                _ => Err(ParseError),
+                "J" => CardValue::Jack,
+                "Q" => CardValue::Queen,
+                "K" => CardValue::King,
+                "A" => CardValue::Ace,
+                _ => panic!("Bad value: {}", s),
             }
         }
     }
 }
 
-#[allow(dead_code)]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 struct Card {
     value: CardValue,
@@ -58,21 +53,14 @@ struct Card {
 }
 
 impl Card {
-    fn from_str(s: &str) -> Result<Card, ParseError> {
-        let value: Result<CardValue, ParseError> = CardValue::from_str(&s[..s.len()-1]);
-        let suit = CardSuit::from_str(&s[s.len()-1..]);
-        match (value, suit) {
-            (Ok(v), Ok(s)) => Ok(Card {suit: s, value: v}),
-            _ => Err(ParseError),
-        }
+    fn from_str(s: &str) -> Card {
+        Card {suit: CardSuit::from_str(&s[s.len()-1..]), value: CardValue::from_str(&s[..s.len()-1])}
     }
     fn is_adjacent(self: &Self, other: &Self) -> bool {
         (self.value as i8 - other.value as i8).abs() == 1
     }
 }
 
-
-#[allow(dead_code)]
 #[derive(Debug, PartialEq, PartialOrd)]
 enum Rank {
     HighCard,
@@ -98,10 +86,6 @@ impl fmt::Debug for Hand<'_> {
         write!(f, "{:?} ({})", self.rank, self.src)
     }
 }
-
-#[derive(Debug)]
-struct ParseHandError<'a>(&'a str);
-
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 enum Tuple {
@@ -177,40 +161,28 @@ fn is_full_house(cards: &BTreeSet<Card>) -> bool {
 }
 
 impl Hand<'_> {
-    fn from_str(s: &str) -> Result<Hand, ParseHandError> {
-        let mut cards =  BTreeSet::<Card>::new();
+    fn from_str(s: &str) -> Hand {
         let cards_str = s.split(" ").collect::<Vec<_>>();
-        if cards_str.len() != 5 {
-            return Err(ParseHandError(s));
-        }
-        for card in cards_str {
-            match Card::from_str(card) {
-                Ok(c) => if !cards.insert(c) {
-                    return Err(ParseHandError(s))
-                },
-                Err(_) => {
-                    return Err(ParseHandError(s));
-                }
-            }
-        }
+        if cards_str.len() != 5 { panic!("Cannot find 5 cards in the hand: {}", s) }
+        let mut cards = cards_str.iter().map(|&s| Card::from_str(s)).collect();
         if is_straight(&mut cards) && is_flush(&cards) {
-            Ok(Hand {cards: cards, src: s, rank: Rank::StraightFlush})
+            Hand {cards: cards, src: s, rank: Rank::StraightFlush}
         } else if is_four_of_a_kind(&cards) {
-            Ok(Hand {cards: cards, src: s, rank: Rank::FourOfAKind})
+            Hand {cards: cards, src: s, rank: Rank::FourOfAKind}
         } else if is_full_house(&cards) {
-            Ok(Hand {cards: cards, src: s, rank: Rank::FullHouse})
+            Hand {cards: cards, src: s, rank: Rank::FullHouse}
         } else if is_flush(&cards) {
-            Ok(Hand {cards: cards, src: s, rank: Rank::Flush})
+            Hand {cards: cards, src: s, rank: Rank::Flush}
         } else if is_straight(&mut cards) {
-            Ok(Hand {cards: cards, src: s, rank: Rank::Straight})
+            Hand {cards: cards, src: s, rank: Rank::Straight}
         } else if have_three_of_a_kind(&cards) {
-            Ok(Hand {cards: cards, src: s, rank: Rank::ThreeOFAKind})
+            Hand {cards: cards, src: s, rank: Rank::ThreeOFAKind}
         } else if have_two_pair(&cards) {
-            Ok(Hand {cards: cards, src: s, rank: Rank::TwoPair})
+            Hand {cards: cards, src: s, rank: Rank::TwoPair}
         } else if have_one_pair(&cards) {
-            Ok(Hand {cards: cards, src: s, rank: Rank::OnePair})
+            Hand {cards: cards, src: s, rank: Rank::OnePair}
         } else {
-            Ok(Hand {cards: cards, src: s, rank: Rank::HighCard})
+            Hand {cards: cards, src: s, rank: Rank::HighCard}
         }
     }
 }
@@ -281,7 +253,7 @@ impl<'a> PartialOrd for Hand<'a> {
 }
 
 pub fn winning_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
-    let mut hands = hands.iter().map(|h| Hand::from_str(h).unwrap()).collect::<Vec<Hand>>();
+    let mut hands = hands.iter().map(|&h| Hand::from_str(h)).collect::<Vec<Hand>>();
     hands.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Less));
     hands.reverse();
     if hands.len() > 1 {
