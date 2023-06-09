@@ -25,19 +25,19 @@ impl CardSuit {
 #[derive(Debug)]
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum CardValue {
-    Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten, Jack, Queen, King, Ace,
+    One, Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten, Jack, Queen, King, Ace,
 }
 
 impl CardValue {
     fn from_str(s: &str) -> Result<CardValue, ParseError> {
-        const CARDVALUES: [CardValue; 13] = [
-            CardValue::Two, CardValue::Three, CardValue::Four, CardValue::Five,
+        const CARDVALUES: [CardValue; 14] = [
+            CardValue::One, CardValue::Two, CardValue::Three, CardValue::Four, CardValue::Five,
             CardValue::Six, CardValue::Seven, CardValue::Eight, CardValue::Nine, CardValue::Ten,
             CardValue::Jack, CardValue::Queen, CardValue::King, CardValue::Ace,
         ];
         match s.parse::<usize>() {
             Ok(i) => {
-                if i >=2 && i <=10 { Ok(CARDVALUES[i - 2]) } else { Err(ParseError) }
+                if i >=2 && i <=10 { Ok(CARDVALUES[i - 1]) } else { Err(ParseError) }
             },
             Err(_) => match s {
                 "J" => Ok(CardValue::Jack),
@@ -211,10 +211,10 @@ impl Hand<'_> {
 impl<'a> PartialOrd for Hand<'a> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         if self.rank != other.rank {
-            println!("self, {:?}", self);
-            println!("other, {:?}", other);
+            // println!("self, {:?}", self);
+            // println!("other, {:?}", other);
             let toto = self.rank.partial_cmp(&other.rank);
-            println!("partial_cmp, {:?}", toto);
+            // println!("partial_cmp, {:?}", toto);
             toto
         } else {
             match self.rank {
@@ -239,7 +239,7 @@ pub fn winning_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
     let mut hands = hands.iter().map(|h| Hand::from_str(h).unwrap()).collect::<Vec<Hand>>();
     hands.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Less));
     hands.reverse();
-    println!("hands {:?}", hands);
+    // println!("hands {:?}", hands);
     if hands.len() > 1 {
         let hand = &hands[0];
         hands.iter().filter(|&h| h.partial_cmp(hand).unwrap() == Ordering::Equal).map(|h| h.src).collect()
