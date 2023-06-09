@@ -66,7 +66,7 @@ impl Card {
             _ => Err(ParseError),
         }
     }
-    fn is_adjacent(self: &Self, other: &Self) -> bool {
+    fn is_adjacent(self: &mut Self, other: &mut Self) -> bool {
         (self.value as i8 - other.value as i8).abs() == 1
     }
 }
