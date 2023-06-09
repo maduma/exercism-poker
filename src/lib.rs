@@ -111,9 +111,9 @@ enum Tuple {
     Quad,
 }
 
-fn frequencies(values: Vec<CardValue>) -> HashMap<Tuple, Vec<CardValue>> {
+fn frequencies(values: Vec<CardValue>) -> HashMap<Tuple, BTreeSet<CardValue>> {
     let mut h1 = HashMap::<CardValue, u8>::new();
-    let mut h2: HashMap<Tuple, Vec<CardValue>> = HashMap::new();
+    let mut h2: HashMap<Tuple, BTreeSet<CardValue>> = HashMap::new();
     for v in values {
         h1.entry(v).and_modify(|count| *count += 1).or_insert(1);
     }
@@ -124,7 +124,7 @@ fn frequencies(values: Vec<CardValue>) -> HashMap<Tuple, Vec<CardValue>> {
             3 => Tuple::Triad,
             4 => Tuple::Quad,
             _ => panic!("More that 4 fo the same cards!"),
-        }).or_insert(Vec::new()).push(k);
+        }).or_insert(BTreeSet::new()).insert(k);
     }
     h2
 }
@@ -181,18 +181,14 @@ impl Hand<'_> {
         let mut cards =  BTreeSet::<Card>::new();
         let cards_str = s.split(" ").collect::<Vec<_>>();
         if cards_str.len() != 5 {
-            let err =  ParseHandError(s);
-            println!("{:?}", err);
-            return Err(err);
+            return Err(ParseHandError(s));
         }
         for card in cards_str {
             match Card::from_str(card) {
                 Ok(c) => if !cards.insert(c) {
-                    println!("Duplicate cards {:?}", card);
                     return Err(ParseHandError(s))
                 },
-                Err(e) => {
-                    println!("{:?}", e);
+                Err(_) => {
                     return Err(ParseHandError(s));
                 }
             }
@@ -219,14 +215,16 @@ impl Hand<'_> {
     }
 }
 
+fn reverse_vec<T>(btree: &BTreeSet<T>) -> Vec<&T> {
+    let mut t = btree.iter().collect::<Vec<_>>();
+    t.reverse();
+    t
+}
+
 impl<'a> PartialOrd for Hand<'a> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         if self.rank != other.rank {
-            // println!("self, {:?}", self);
-            // println!("other, {:?}", other);
-            let toto = self.rank.partial_cmp(&other.rank);
-            // println!("partial_cmp, {:?}", toto);
-            toto
+           self.rank.partial_cmp(&other.rank)
         } else {
             match self.rank {
                 Rank::Straight | Rank::StraightFlush => self.cards.first().unwrap().partial_cmp(other.cards.first().unwrap()),
@@ -235,32 +233,57 @@ impl<'a> PartialOrd for Hand<'a> {
                     let v2 = other.cards.iter().map(|c| c.value).collect::<Vec<CardValue>>();
                     v1.partial_cmp(&v2)
                 },
-                _ => Some(Ordering::Equal),
+                Rank::FourOfAKind => {
+                    let freq1 = frequencies(self.cards.iter().map(|c| c.value).collect::<Vec<CardValue>>());
+                    let freq2 = frequencies(other.cards.iter().map(|c| c.value).collect::<Vec<CardValue>>());
+                    let v11 = freq1.get(&Tuple::Quad).unwrap();
+                    let v12 = freq1.get(&Tuple::Single).unwrap();
+                    let v21 = freq2.get(&Tuple::Quad).unwrap();
+                    let v22 = freq2.get(&Tuple::Single).unwrap();
+                    (v11, v12).partial_cmp(&(v21, v22))
+                },
+                Rank::FullHouse => {
+                    let freq1 = frequencies(self.cards.iter().map(|c| c.value).collect::<Vec<CardValue>>());
+                    let freq2 = frequencies(other.cards.iter().map(|c| c.value).collect::<Vec<CardValue>>());
+                    let v11 = freq1.get(&Tuple::Triad).unwrap();
+                    let v12 = freq1.get(&Tuple::Pair).unwrap();
+                    let v21 = freq2.get(&Tuple::Triad).unwrap();
+                    let v22 = freq2.get(&Tuple::Pair).unwrap();
+                    (v11, v12).partial_cmp(&(v21, v22))
+                },
+                Rank::ThreeOFAKind => {
+                    let freq1 = frequencies(self.cards.iter().map(|c| c.value).collect::<Vec<CardValue>>());
+                    let freq2 = frequencies(other.cards.iter().map(|c| c.value).collect::<Vec<CardValue>>());
+                    let v11 = freq1.get(&Tuple::Triad).unwrap();
+                    let v12 = freq1.get(&Tuple::Single).unwrap();
+                    let v12 = reverse_vec(v12);
+                    let v21 = freq2.get(&Tuple::Triad).unwrap();
+                    let v22 = freq2.get(&Tuple::Single).unwrap();
+                    let v22 = reverse_vec(v22);
+                    (v11, v12).partial_cmp(&(v21, v22))
+                },
+                Rank::OnePair | Rank::TwoPair => {
+                    let freq1 = frequencies(self.cards.iter().map(|c| c.value).collect::<Vec<CardValue>>());
+                    let v11 = freq1.get(&Tuple::Pair).unwrap();
+                    let v11 = reverse_vec(v11);
+                    let v12 = freq1.get(&Tuple::Single).unwrap();
+                    let v12 = reverse_vec(v12);
+                    let freq2 = frequencies(other.cards.iter().map(|c| c.value).collect::<Vec<CardValue>>());
+                    let v21 = freq2.get(&Tuple::Pair).unwrap();
+                    let v21 = reverse_vec(v21);
+                    let v22 = freq2.get(&Tuple::Single).unwrap();
+                    let v22 = reverse_vec(v22);
+                    (v11, v12).partial_cmp(&(v21, v22))
+                },
             }   
         }
     }
 }
 
 pub fn winning_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
-    let s1 = "KS AH AS AD AC";
-    let s2 = "4H AH 3H 2H 5H";
-    println!("{:?}", Hand::from_str(&s1));
-    println!("{:?}", Hand::from_str(&s1).unwrap().cards);
-    println!("{:?}", Hand::from_str(&s2));
-    println!("{:?}", Hand::from_str(&s2).unwrap().cards);
-    // println!("{:?}", Hand::from_str("JC JD JH JS 9S"));
-    // println!("{:?}", Hand::from_str("5C 5D 7H 7D 5S"));
-    // println!("{:?}", Hand::from_str("5C 6C 8C 10C JC"));
-    // println!("{:?}", Hand::from_str("5C 6D 7H 8D 9S"));
-    // println!("{:?}", Hand::from_str("5C 5D 7H 6D 5S"));
-    // println!("{:?}", Hand::from_str("5C 5D 7H 7D AS"));
-    // println!("{:?}", Hand::from_str("5C 4D 7H AD AS"));
-    // println!("{:?}", Hand::from_str("5C 4D 7H AD JS"));
-    
     let mut hands = hands.iter().map(|h| Hand::from_str(h).unwrap()).collect::<Vec<Hand>>();
     hands.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Less));
     hands.reverse();
-    // println!("hands {:?}", hands);
     if hands.len() > 1 {
         let hand = &hands[0];
         hands.iter().filter(|&h| h.partial_cmp(hand).unwrap() == Ordering::Equal).map(|h| h.src).collect()
