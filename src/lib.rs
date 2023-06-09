@@ -143,6 +143,7 @@ fn is_straight(cards: &mut BTreeSet<Card>) -> bool {
         // replace Ace value with One
         cards.clear();
         cards.append(&mut new_cards);
+        return true
     }
     false
 }
@@ -229,6 +230,11 @@ impl<'a> PartialOrd for Hand<'a> {
         } else {
             match self.rank {
                 Rank::Straight | Rank::StraightFlush => self.cards.first().unwrap().partial_cmp(other.cards.first().unwrap()),
+                Rank::HighCard | Rank::Flush => {
+                    let v1 = self.cards.iter().map(|c| c.value).collect::<Vec<CardValue>>();
+                    let v2 = other.cards.iter().map(|c| c.value).collect::<Vec<CardValue>>();
+                    v1.partial_cmp(&v2)
+                },
                 _ => Some(Ordering::Equal),
             }   
         }
@@ -236,10 +242,12 @@ impl<'a> PartialOrd for Hand<'a> {
 }
 
 pub fn winning_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
-    println!("{:?}", Hand::from_str("AC 2D 3C 4C 5C"));
-    println!("{:?}", Hand::from_str("AC 2D 3C 4C 5C").unwrap().cards);
-    println!("{:?}", Hand::from_str("10C JD QC KC AC"));
-    println!("{:?}", Hand::from_str("10C JD QC KC AC").unwrap().cards);
+    let s1 = "KS AH AS AD AC";
+    let s2 = "4H AH 3H 2H 5H";
+    println!("{:?}", Hand::from_str(&s1));
+    println!("{:?}", Hand::from_str(&s1).unwrap().cards);
+    println!("{:?}", Hand::from_str(&s2));
+    println!("{:?}", Hand::from_str(&s2).unwrap().cards);
     // println!("{:?}", Hand::from_str("JC JD JH JS 9S"));
     // println!("{:?}", Hand::from_str("5C 5D 7H 7D 5S"));
     // println!("{:?}", Hand::from_str("5C 6C 8C 10C JC"));

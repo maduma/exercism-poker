@@ -21,7 +21,7 @@ fn test(input: &[&str], expected: &[&str]) {
 #[test]
 // #[ignore]
 fn test_single_hand_always_wins() {
-    test(&["4S 5S 7H 8D JC"], &["S 5S 7H 8D JC"])
+    test(&["4S 5S 7H 8D JC"], &["4S 5S 7H 8D JC"])
 }
 
 #[test]
@@ -32,7 +32,7 @@ fn test_duplicate_hands_always_tie() {
 }
 
 #[test]
-#[ignore]
+// #[ignore]
 fn test_highest_card_of_all_hands_wins() {
     test(
         &["4D 5S 6S 8D 3C", "2S 4C 7S 9H 10H", "3S 4S 5D 6H JH"],
@@ -41,7 +41,7 @@ fn test_highest_card_of_all_hands_wins() {
 }
 
 #[test]
-#[ignore]
+// #[ignore]
 fn test_a_tie_has_multiple_winners() {
     test(
         &[
@@ -55,7 +55,7 @@ fn test_a_tie_has_multiple_winners() {
 }
 
 #[test]
-#[ignore]
+// #[ignore]
 fn test_high_card_can_be_low_card_in_an_otherwise_tie() {
     // multiple hands with the same high cards, tie compares next highest ranked,
     // down to last card
@@ -231,35 +231,35 @@ fn test_straight_flush_beats_four_of_a_kind() {
 }
 
 #[test]
-#[ignore]
+// #[ignore]
 fn test_aces_can_end_a_straight_flush_high() {
     // aces can end a straight flush (10 J Q K A)
     test(&["KC AH AS AD AC", "10C JC QC KC AC"], &["10C JC QC KC AC"])
 }
 
 #[test]
-#[ignore]
+// #[ignore]
 fn test_aces_can_start_a_straight_flush_low() {
     // aces can start a straight flush (A 2 3 4 5)
     test(&["KS AH AS AD AC", "4H AH 3H 2H 5H"], &["4H AH 3H 2H 5H"])
 }
 
 #[test]
-#[ignore]
+// #[ignore]
 fn test_no_ace_in_middle_of_straight_flush() {
     // aces cannot be in the middle of a straight flush (Q K A 2 3)
     test(&["2C AC QC 10C KC", "QH KH AH 2H 3H"], &["2C AC QC 10C KC"])
 }
 
 #[test]
-#[ignore]
+// #[ignore]
 fn test_straight_flush_ranks() {
     // both hands have a straight flush, tie goes to highest-ranked card
     test(&["4H 6H 7H 8H 5H", "5S 7S 8S 9S 6S"], &["5S 7S 8S 9S 6S"])
 }
 
 #[test]
-#[ignore]
+// #[ignore]
 fn test_straight_flush_scoring() {
     // even though an ace is usually high, a 5-high straight flush is the lowest-scoring straight flush
     test(&["2H 3H 4H 5H 6H", "4D AD 3D 2D 5D"], &["2H 3H 4H 5H 6H"])
