@@ -91,7 +91,6 @@ struct Hand<'a> {
     cards: BTreeSet<Card>,
     src: &'a str,
     rank: Rank,
-    highs: [u8; 4],
 }
 
 impl fmt::Debug for Hand<'_> {
