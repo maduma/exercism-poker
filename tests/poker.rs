@@ -21,7 +21,7 @@ fn test(input: &[&str], expected: &[&str]) {
 #[test]
 // #[ignore]
 fn test_single_hand_always_wins() {
-    test(&["4S 5S 7H 8D JC"], &["4S 5S 7H 8D JC"])
+    test(&["4S 5S 7H 8D JC"], &["S 5S 7H 8D JC"])
 }
 
 #[test]

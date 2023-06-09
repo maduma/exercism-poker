@@ -24,7 +24,7 @@ impl CardSuit {
 
 #[derive(Debug)]
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-enum CardValue {
+enum CardValue { // Ace may have a value of One
     One, Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten, Jack, Queen, King, Ace,
 }
 
@@ -51,7 +51,7 @@ impl CardValue {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 struct Card {
     value: CardValue,
     suit: CardSuit,
@@ -133,8 +133,18 @@ fn is_flush(cards: &BTreeSet<Card>) -> bool {
     cards.iter().zip(cards.iter().skip(1)).all(|(c1, c2)| c1.suit == c2.suit)
 }
 
-fn is_straight(cards: &BTreeSet<Card>) -> bool {
-    cards.iter().zip(cards.iter().skip(1)).all(|(c1, c2)| c1.is_adjacent(c2))
+fn is_straight(cards: &mut BTreeSet<Card>) -> bool {
+    if cards.iter().zip(cards.iter().skip(1)).all(|(c1, c2)| c1.is_adjacent(c2)) {
+        return true
+    }
+    // check with Ace as One
+    let mut new_cards = cards.iter().map(|&c| if c.value == CardValue::Ace { Card { value: CardValue::One, ..c } } else { c }).collect::<BTreeSet<Card>>();
+    if new_cards.iter().zip(new_cards.iter().skip(1)).all(|(c1, c2)| c1.is_adjacent(c2)) {
+        // replace Ace value with One
+        cards.clear();
+        cards.append(&mut new_cards);
+    }
+    false
 }
 
 fn is_four_of_a_kind(cards: &BTreeSet<Card>) -> bool {
@@ -186,7 +196,7 @@ impl Hand<'_> {
                 }
             }
         }
-        if is_straight(&cards) && is_flush(&cards) {
+        if is_straight(&mut cards) && is_flush(&cards) {
             Ok(Hand {cards: cards, src: s, rank: Rank::StraightFlush})
         } else if is_four_of_a_kind(&cards) {
             Ok(Hand {cards: cards, src: s, rank: Rank::FourOfAKind})
@@ -194,7 +204,7 @@ impl Hand<'_> {
             Ok(Hand {cards: cards, src: s, rank: Rank::FullHouse})
         } else if is_flush(&cards) {
             Ok(Hand {cards: cards, src: s, rank: Rank::Flush})
-        } else if is_straight(&cards) {
+        } else if is_straight(&mut cards) {
             Ok(Hand {cards: cards, src: s, rank: Rank::Straight})
         } else if have_three_of_a_kind(&cards) {
             Ok(Hand {cards: cards, src: s, rank: Rank::ThreeOFAKind})
@@ -226,7 +236,10 @@ impl<'a> PartialOrd for Hand<'a> {
 }
 
 pub fn winning_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
-    // println!("{:?}", Hand::from_str("5C 6C 7C 8C 9C"));
+    println!("{:?}", Hand::from_str("AC 2D 3C 4C 5C"));
+    println!("{:?}", Hand::from_str("AC 2D 3C 4C 5C").unwrap().cards);
+    println!("{:?}", Hand::from_str("10C JD QC KC AC"));
+    println!("{:?}", Hand::from_str("10C JD QC KC AC").unwrap().cards);
     // println!("{:?}", Hand::from_str("JC JD JH JS 9S"));
     // println!("{:?}", Hand::from_str("5C 5D 7H 7D 5S"));
     // println!("{:?}", Hand::from_str("5C 6C 8C 10C JC"));
