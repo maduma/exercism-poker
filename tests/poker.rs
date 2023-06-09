@@ -32,7 +32,7 @@ fn test_duplicate_hands_always_tie() {
 }
 
 #[test]
-// #[ignore]
+#[ignore]
 fn test_highest_card_of_all_hands_wins() {
     test(
         &["4D 5S 6S 8D 3C", "2S 4C 7S 9H 10H", "3S 4S 5D 6H JH"],
@@ -63,7 +63,7 @@ fn test_high_card_can_be_low_card_in_an_otherwise_tie() {
 }
 
 #[test]
-#[ignore]
+// #[ignore]
 fn test_one_pair_beats_high_card() {
     test(&["4S 5H 6C 8D KH", "2S 4H 6S 4D JH"], &["2S 4H 6S 4D JH"])
 }
@@ -75,7 +75,7 @@ fn test_highest_pair_wins() {
 }
 
 #[test]
-#[ignore]
+// #[ignore]
 fn test_two_pairs_beats_one_pair() {
     test(&["2S 8H 6S 8D JH", "4S 5H 4C 8C 5C"], &["4S 5H 4C 8C 5C"])
 }
@@ -104,7 +104,7 @@ fn test_two_pairs_last_card_cascade() {
 }
 
 #[test]
-#[ignore]
+// #[ignore]
 fn test_three_of_a_kind_beats_two_pair() {
     test(&["2S 8H 2H 8D JH", "4S 5H 4C 8S 4H"], &["4S 5H 4C 8S 4H"])
 }
@@ -131,7 +131,7 @@ fn test_three_of_a_kind_cascade_ranks() {
 }
 
 #[test]
-#[ignore]
+// #[ignore]
 fn test_straight_beats_three_of_a_kind() {
     test(&["4S 5H 4C 8D 4H", "3S 4D 2S 6D 5C"], &["3S 4D 2S 6D 5C"])
 }
@@ -172,7 +172,7 @@ fn test_straight_scoring() {
 }
 
 #[test]
-#[ignore]
+// #[ignore]
 fn test_flush_beats_a_straight() {
     test(&["4C 6H 7D 8D 5H", "2S 4S 5S 6S 7S"], &["2S 4S 5S 6S 7S"])
 }
@@ -185,7 +185,7 @@ fn test_flush_cascade() {
 }
 
 #[test]
-#[ignore]
+// #[ignore]
 fn test_full_house_beats_a_flush() {
     test(&["3H 6H 7H 8H 5H", "4S 5C 4C 5D 4H"], &["4S 5C 4C 5D 4H"])
 }
@@ -205,7 +205,7 @@ fn test_full_house_cascade() {
 }
 
 #[test]
-#[ignore]
+// #[ignore]
 fn test_four_of_a_kind_beats_full_house() {
     test(&["4S 5H 4D 5D 4H", "3S 3H 2S 3D 3C"], &["3S 3H 2S 3D 3C"])
 }
@@ -225,7 +225,7 @@ fn test_four_of_a_kind_cascade() {
 }
 
 #[test]
-#[ignore]
+// #[ignore]
 fn test_straight_flush_beats_four_of_a_kind() {
     test(&["4S 5H 5S 5D 5C", "7S 8S 9S 6S 10S"], &["7S 8S 9S 6S 10S"])
 }

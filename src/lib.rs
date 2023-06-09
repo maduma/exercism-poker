@@ -211,11 +211,15 @@ impl Hand<'_> {
 impl<'a> PartialOrd for Hand<'a> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         if self.rank != other.rank {
-            self.rank.partial_cmp(&other.rank)
+            println!("self, {:?}", self);
+            println!("other, {:?}", other);
+            let toto = self.rank.partial_cmp(&other.rank);
+            println!("partial_cmp, {:?}", toto);
+            toto
         } else {
             match self.rank {
                 Rank::Straight | Rank::StraightFlush => self.cards.first().unwrap().partial_cmp(other.cards.first().unwrap()),
-                _ => Some(Ordering::Less),
+                _ => Some(Ordering::Equal),
             }   
         }
     }
@@ -235,5 +239,11 @@ pub fn winning_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
     let mut hands = hands.iter().map(|h| Hand::from_str(h).unwrap()).collect::<Vec<Hand>>();
     hands.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Less));
     hands.reverse();
-    hands.iter().map(|h| h.src).collect()
+    println!("hands {:?}", hands);
+    if hands.len() > 1 {
+        let hand = &hands[0];
+        hands.iter().filter(|&h| h.partial_cmp(hand).unwrap() == Ordering::Equal).map(|h| h.src).collect()
+    } else {
+        hands.iter().map(|h| h.src).collect()
+    }
 }
