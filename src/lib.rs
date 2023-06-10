@@ -33,7 +33,7 @@ impl CardValue {
         ];
         match s.parse::<usize>() {
             Ok(i) => {
-                if i >=2 && i <=10 { CARDVALUES[i - 1] } else { panic!("Bad value: {}", s) }
+                if i >=2 && i <=10 { CARDVALUES[i-1] } else { panic!("Bad value: {}", s) }
             },
             Err(_) => match s {
                 "J" => CardValue::Jack,
@@ -54,7 +54,9 @@ struct Card {
 
 impl Card {
     fn from_str(s: &str) -> Card {
-        Card {suit: CardSuit::from_str(&s[s.len()-1..]), value: CardValue::from_str(&s[..s.len()-1])}
+        let suit = &s[s.len()-1..];
+        let value = &s[..s.len()-1];
+        Card {suit: CardSuit::from_str(suit), value: CardValue::from_str(value)}
     }
     fn is_adjacent(self: &Self, other: &Self) -> bool {
         (self.value as i8 - other.value as i8).abs() == 1
@@ -79,6 +81,7 @@ struct Hand<'a> {
     cards: BTreeSet<Card>,
     src: &'a str,
     rank: Rank,
+    freq: HashMap<Tuple, Vec<CardValue>>,
 }
 
 impl fmt::Debug for Hand<'_> {
@@ -95,12 +98,12 @@ enum Tuple {
     Quad,
 }
 
-fn frequencies(values: Vec<CardValue>) -> HashMap<Tuple, BTreeSet<CardValue>> {
+fn frequencies(values: Vec<CardValue>) -> HashMap<Tuple, Vec<CardValue>> {
     let mut h1 = HashMap::<CardValue, u8>::new();
-    let mut h2: HashMap<Tuple, BTreeSet<CardValue>> = HashMap::new();
     for v in values {
         h1.entry(v).and_modify(|count| *count += 1).or_insert(1);
     }
+    let mut h2: HashMap<Tuple, BTreeSet<CardValue>> = HashMap::new();
     for (k, count) in h1 {
         h2.entry(match count {
             1 => Tuple::Single,
@@ -110,87 +113,69 @@ fn frequencies(values: Vec<CardValue>) -> HashMap<Tuple, BTreeSet<CardValue>> {
             _ => panic!("More that 4 cards with the same value!"),
         }).or_insert(BTreeSet::new()).insert(k);
     }
-    h2
+    h2.into_iter()
+        .map(|(k, v)| (k, v.into_iter().rev().collect::<Vec<CardValue>>()))
+        .collect::<HashMap<Tuple, Vec<CardValue>>>()
 }
 
-fn is_flush(cards: &BTreeSet<Card>) -> bool {
-    cards.iter().zip(cards.iter().skip(1)).all(|(c1, c2)| c1.suit == c2.suit)
-}
 
-fn is_straight(cards: &mut BTreeSet<Card>) -> bool {
-    if cards.iter().zip(cards.iter().skip(1)).all(|(c1, c2)| c1.is_adjacent(c2)) {
+fn is_straight(hand: &mut Hand) -> bool {
+    if hand.cards.iter().zip(hand.cards.iter().skip(1)).all(|(c1, c2)| c1.is_adjacent(c2)) {
         return true
     }
-    // check with Ace as One
-    let mut new_cards = cards.iter().map(|&c| if c.value == CardValue::Ace { Card { value: CardValue::One, ..c } } else { c }).collect::<BTreeSet<Card>>();
+    // check with Ace as value One
+    let mut new_cards = hand.cards.iter().map(|&c| if c.value == CardValue::Ace { Card { value: CardValue::One, ..c } } else { c }).collect::<BTreeSet<Card>>();
     if new_cards.iter().zip(new_cards.iter().skip(1)).all(|(c1, c2)| c1.is_adjacent(c2)) {
         // replace Ace value with One
-        cards.clear();
-        cards.append(&mut new_cards);
+        hand.cards.clear();
+        hand.cards.append(&mut new_cards);
         return true
     }
     false
 }
 
-fn is_four_of_a_kind(cards: &BTreeSet<Card>) -> bool {
-    let values = cards.iter().map(|c| c.value).collect::<Vec<CardValue>>();
-    let freq = frequencies(values);
-    freq.contains_key(&Tuple::Quad)
+fn is_flush(hand: &Hand) -> bool {
+    hand.cards.iter().zip(hand.cards.iter().skip(1)).all(|(c1, c2)| c1.suit == c2.suit)
 }
 
-fn have_one_pair(cards: &BTreeSet<Card>) -> bool {
-    let values = cards.iter().map(|c| c.value).collect::<Vec<CardValue>>();
-    let freq = frequencies(values);
-    freq.contains_key(&Tuple::Pair)
+fn is_four_of_a_kind(hand: &Hand) -> bool {
+    hand.freq.contains_key(&Tuple::Quad)
 }
 
-fn have_two_pair(cards: &BTreeSet<Card>) -> bool {
-    let values = cards.iter().map(|c| c.value).collect::<Vec<CardValue>>();
-    let freq = frequencies(values);
-    freq.contains_key(&Tuple::Pair) && freq.get(&Tuple::Pair).unwrap().len() == 2
+fn have_one_pair(hand: &Hand) -> bool {
+    hand.freq.contains_key(&Tuple::Pair)
 }
 
-fn have_three_of_a_kind(cards: &BTreeSet<Card>) -> bool {
-    let values = cards.iter().map(|c| c.value).collect::<Vec<CardValue>>();
-    let freq = frequencies(values);
-    freq.contains_key(&Tuple::Triad)
+fn have_two_pair(hand: &Hand) -> bool {
+    hand.freq.contains_key(&Tuple::Pair) && hand.freq.get(&Tuple::Pair).unwrap().len() == 2
 }
 
-fn is_full_house(cards: &BTreeSet<Card>) -> bool {
-    have_three_of_a_kind(cards) && have_one_pair(cards)
+fn have_three_of_a_kind(hand: &Hand) -> bool {
+    hand.freq.contains_key(&Tuple::Triad)
+}
+
+fn is_full_house(hand: &Hand) -> bool {
+    have_three_of_a_kind(hand) && have_one_pair(hand)
 }
 
 impl Hand<'_> {
-    fn from_str(s: &str) -> Hand {
-        let cards_str = s.split(" ").collect::<Vec<_>>();
-        if cards_str.len() != 5 { panic!("Cannot find 5 cards in the hand: {}", s) }
-        let mut cards = cards_str.iter().map(|&s| Card::from_str(s)).collect();
-        if is_straight(&mut cards) && is_flush(&cards) {
-            Hand {cards: cards, src: s, rank: Rank::StraightFlush}
-        } else if is_four_of_a_kind(&cards) {
-            Hand {cards: cards, src: s, rank: Rank::FourOfAKind}
-        } else if is_full_house(&cards) {
-            Hand {cards: cards, src: s, rank: Rank::FullHouse}
-        } else if is_flush(&cards) {
-            Hand {cards: cards, src: s, rank: Rank::Flush}
-        } else if is_straight(&mut cards) {
-            Hand {cards: cards, src: s, rank: Rank::Straight}
-        } else if have_three_of_a_kind(&cards) {
-            Hand {cards: cards, src: s, rank: Rank::ThreeOFAKind}
-        } else if have_two_pair(&cards) {
-            Hand {cards: cards, src: s, rank: Rank::TwoPair}
-        } else if have_one_pair(&cards) {
-            Hand {cards: cards, src: s, rank: Rank::OnePair}
-        } else {
-            Hand {cards: cards, src: s, rank: Rank::HighCard}
-        }
+    fn from_str(src: &str) -> Hand {
+        let cards_str = src.split(" ").collect::<Vec<_>>();
+        if cards_str.len() != 5 { panic!("Cannot find 5 cards in the hand: {}", src) }
+        let cards: BTreeSet<Card> = cards_str.iter().map(|&s| Card::from_str(s)).collect();
+        let values = cards.iter().map(|c| c.value).collect::<Vec<CardValue>>();
+        let mut hand = Hand {cards, src, rank: Rank::HighCard, freq: frequencies(values)};
+        
+        if is_straight(&mut hand) && is_flush(&hand) { hand.rank = Rank::StraightFlush }
+        else if is_four_of_a_kind(&hand) { hand.rank = Rank::FourOfAKind }
+        else if is_full_house(&hand) { hand.rank = Rank::FullHouse }
+        else if is_flush(&hand) { hand.rank = Rank::Flush }
+        else if is_straight(&mut hand) { hand.rank = Rank::Straight }
+        else if have_three_of_a_kind(&hand) { hand.rank = Rank::ThreeOFAKind }
+        else if have_two_pair(&hand) { hand.rank = Rank::TwoPair }
+        else if have_one_pair(&hand) { hand.rank = Rank::OnePair }
+        hand
     }
-}
-
-fn reverse_vec<T>(btree: &BTreeSet<T>) -> Vec<&T> {
-    let mut t = btree.iter().collect::<Vec<_>>();
-    t.reverse();
-    t
 }
 
 impl<'a> PartialOrd for Hand<'a> {
@@ -206,45 +191,31 @@ impl<'a> PartialOrd for Hand<'a> {
                     v1.partial_cmp(&v2)
                 },
                 Rank::FourOfAKind => {
-                    let freq1 = frequencies(self.cards.iter().map(|c| c.value).collect::<Vec<CardValue>>());
-                    let freq2 = frequencies(other.cards.iter().map(|c| c.value).collect::<Vec<CardValue>>());
-                    let v11 = freq1.get(&Tuple::Quad).unwrap();
-                    let v12 = freq1.get(&Tuple::Single).unwrap();
-                    let v21 = freq2.get(&Tuple::Quad).unwrap();
-                    let v22 = freq2.get(&Tuple::Single).unwrap();
+                    let v11 = &self.freq.get(&Tuple::Quad).unwrap();
+                    let v12 = &self.freq.get(&Tuple::Single).unwrap();
+                    let v21 = &other.freq.get(&Tuple::Quad).unwrap();
+                    let v22 = &other.freq.get(&Tuple::Single).unwrap();
                     (v11, v12).partial_cmp(&(v21, v22))
                 },
                 Rank::FullHouse => {
-                    let freq1 = frequencies(self.cards.iter().map(|c| c.value).collect::<Vec<CardValue>>());
-                    let freq2 = frequencies(other.cards.iter().map(|c| c.value).collect::<Vec<CardValue>>());
-                    let v11 = freq1.get(&Tuple::Triad).unwrap();
-                    let v12 = freq1.get(&Tuple::Pair).unwrap();
-                    let v21 = freq2.get(&Tuple::Triad).unwrap();
-                    let v22 = freq2.get(&Tuple::Pair).unwrap();
+                    let v11 = &self.freq.get(&Tuple::Triad).unwrap();
+                    let v12 = &self.freq.get(&Tuple::Pair).unwrap();
+                    let v21 = &other.freq.get(&Tuple::Triad).unwrap();
+                    let v22 = &other.freq.get(&Tuple::Pair).unwrap();
                     (v11, v12).partial_cmp(&(v21, v22))
                 },
                 Rank::ThreeOFAKind => {
-                    let freq1 = frequencies(self.cards.iter().map(|c| c.value).collect::<Vec<CardValue>>());
-                    let freq2 = frequencies(other.cards.iter().map(|c| c.value).collect::<Vec<CardValue>>());
-                    let v11 = freq1.get(&Tuple::Triad).unwrap();
-                    let v12 = freq1.get(&Tuple::Single).unwrap();
-                    let v12 = reverse_vec(v12);
-                    let v21 = freq2.get(&Tuple::Triad).unwrap();
-                    let v22 = freq2.get(&Tuple::Single).unwrap();
-                    let v22 = reverse_vec(v22);
+                    let v11 = &self.freq.get(&Tuple::Triad).unwrap();
+                    let v12 = &self.freq.get(&Tuple::Single).unwrap();
+                    let v21 = &other.freq.get(&Tuple::Triad).unwrap();
+                    let v22 = &other.freq.get(&Tuple::Single).unwrap();
                     (v11, v12).partial_cmp(&(v21, v22))
                 },
                 Rank::OnePair | Rank::TwoPair => {
-                    let freq1 = frequencies(self.cards.iter().map(|c| c.value).collect::<Vec<CardValue>>());
-                    let v11 = freq1.get(&Tuple::Pair).unwrap();
-                    let v11 = reverse_vec(v11);
-                    let v12 = freq1.get(&Tuple::Single).unwrap();
-                    let v12 = reverse_vec(v12);
-                    let freq2 = frequencies(other.cards.iter().map(|c| c.value).collect::<Vec<CardValue>>());
-                    let v21 = freq2.get(&Tuple::Pair).unwrap();
-                    let v21 = reverse_vec(v21);
-                    let v22 = freq2.get(&Tuple::Single).unwrap();
-                    let v22 = reverse_vec(v22);
+                    let v11 = &self.freq.get(&Tuple::Pair).unwrap();
+                    let v12 = &self.freq.get(&Tuple::Single).unwrap();
+                    let v21 = &other.freq.get(&Tuple::Pair).unwrap();
+                    let v22 = &other.freq.get(&Tuple::Single).unwrap();
                     (v11, v12).partial_cmp(&(v21, v22))
                 },
             }   
