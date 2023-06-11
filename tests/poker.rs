@@ -38,6 +38,14 @@ fn test_highest_card_of_all_hands_wins() {
 }
 
 #[test]
+fn test_highest_card_of_all_hands_wins_2() {
+    test(
+        &["3D 5S 6S 8D 10C", "4S 5C 6S 8H 9H"],
+        &["3D 5S 6S 8D 10C"],
+    )
+}
+
+#[test]
 fn test_a_tie_has_multiple_winners() {
     test(
         &[

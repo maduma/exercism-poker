@@ -1,5 +1,5 @@
 use std::cmp::{PartialOrd, Ordering};
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap, BTreeMap};
 use std::fmt;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -81,7 +81,7 @@ struct Hand<'a> {
     cards: BTreeSet<Card>,
     src: &'a str,
     rank: Rank,
-    freq: HashMap<Tuple, Vec<CardValue>>,
+    freq: BTreeMap<Tuple, Vec<CardValue>>,
 }
 
 impl fmt::Debug for Hand<'_> {
@@ -90,15 +90,15 @@ impl fmt::Debug for Hand<'_> {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, PartialOrd, Ord)]
 enum Tuple {
-    Single,
-    Pair,
-    Triad,
     Quad,
+    Triad,
+    Pair,
+    Single,
 }
 
-fn frequencies(values: Vec<CardValue>) -> HashMap<Tuple, Vec<CardValue>> {
+fn frequencies(values: Vec<CardValue>) -> BTreeMap<Tuple, Vec<CardValue>> {
     let mut h1 = HashMap::<CardValue, u8>::new();
     for v in values {
         h1.entry(v).and_modify(|count| *count += 1).or_insert(1);
@@ -115,7 +115,7 @@ fn frequencies(values: Vec<CardValue>) -> HashMap<Tuple, Vec<CardValue>> {
     }
     h2.into_iter()
         .map(|(k, v)| (k, v.into_iter().rev().collect::<Vec<CardValue>>()))
-        .collect::<HashMap<Tuple, Vec<CardValue>>>()
+        .collect::<BTreeMap<Tuple, Vec<CardValue>>>()
 }
 
 
@@ -186,38 +186,15 @@ impl<'a> PartialOrd for Hand<'a> {
             match self.rank {
                 Rank::Straight | Rank::StraightFlush => self.cards.first().unwrap().partial_cmp(other.cards.first().unwrap()),
                 Rank::HighCard | Rank::Flush => {
-                    let v1 = self.cards.iter().map(|c| c.value).collect::<Vec<CardValue>>();
-                    let v2 = other.cards.iter().map(|c| c.value).collect::<Vec<CardValue>>();
+                    let v1 = self.cards.iter().rev().map(|c| c.value).collect::<Vec<_>>();
+                    let v2 = other.cards.iter().rev().map(|c| c.value).collect::<Vec<_>>();
                     v1.partial_cmp(&v2)
                 },
-                Rank::FourOfAKind => {
-                    let v11 = &self.freq.get(&Tuple::Quad).unwrap();
-                    let v12 = &self.freq.get(&Tuple::Single).unwrap();
-                    let v21 = &other.freq.get(&Tuple::Quad).unwrap();
-                    let v22 = &other.freq.get(&Tuple::Single).unwrap();
-                    (v11, v12).partial_cmp(&(v21, v22))
-                },
-                Rank::FullHouse => {
-                    let v11 = &self.freq.get(&Tuple::Triad).unwrap();
-                    let v12 = &self.freq.get(&Tuple::Pair).unwrap();
-                    let v21 = &other.freq.get(&Tuple::Triad).unwrap();
-                    let v22 = &other.freq.get(&Tuple::Pair).unwrap();
-                    (v11, v12).partial_cmp(&(v21, v22))
-                },
-                Rank::ThreeOFAKind => {
-                    let v11 = &self.freq.get(&Tuple::Triad).unwrap();
-                    let v12 = &self.freq.get(&Tuple::Single).unwrap();
-                    let v21 = &other.freq.get(&Tuple::Triad).unwrap();
-                    let v22 = &other.freq.get(&Tuple::Single).unwrap();
-                    (v11, v12).partial_cmp(&(v21, v22))
-                },
-                Rank::OnePair | Rank::TwoPair => {
-                    let v11 = &self.freq.get(&Tuple::Pair).unwrap();
-                    let v12 = &self.freq.get(&Tuple::Single).unwrap();
-                    let v21 = &other.freq.get(&Tuple::Pair).unwrap();
-                    let v22 = &other.freq.get(&Tuple::Single).unwrap();
-                    (v11, v12).partial_cmp(&(v21, v22))
-                },
+                _ => {
+                    let v1 = &self.freq.values().collect::<Vec<_>>();
+                    let v2 = &other.freq.values().collect::<Vec<_>>();
+                    v1.partial_cmp(v2)
+                }
             }   
         }
     }
