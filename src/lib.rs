@@ -114,7 +114,7 @@ fn frequencies(values: Vec<CardValue>) -> BTreeMap<Tuple, Vec<CardValue>> {
         }).or_insert(BTreeSet::new()).insert(k);
     }
     h2.into_iter()
-        .map(|(k, v)| (k, v.into_iter().rev().collect::<Vec<CardValue>>()))
+        .map(|(k, v)| (k, v.into_iter().rev().collect::<Vec<_>>()))
         .collect::<BTreeMap<Tuple, Vec<CardValue>>>()
 }
 
@@ -124,7 +124,8 @@ fn is_straight(hand: &mut Hand) -> bool {
         return true
     }
     // check with Ace as value One
-    let mut new_cards = hand.cards.iter().map(|&c| if c.value == CardValue::Ace { Card { value: CardValue::One, ..c } } else { c }).collect::<BTreeSet<Card>>();
+    let mut new_cards = hand.cards.iter()
+        .map(|&c| if c.value == CardValue::Ace { Card { value: CardValue::One, ..c } } else { c }).collect::<BTreeSet<_>>();
     if new_cards.iter().zip(new_cards.iter().skip(1)).all(|(c1, c2)| c1.is_adjacent(c2)) {
         // replace Ace value with One
         hand.cards.clear();
@@ -163,7 +164,7 @@ impl Hand<'_> {
         let cards_str = src.split(" ").collect::<Vec<_>>();
         if cards_str.len() != 5 { panic!("Cannot find 5 cards in the hand: {}", src) }
         let cards: BTreeSet<Card> = cards_str.iter().map(|&s| Card::from_str(s)).collect();
-        let values = cards.iter().map(|c| c.value).collect::<Vec<CardValue>>();
+        let values = cards.iter().map(|c| c.value).collect::<Vec<_>>();
         let mut hand = Hand {cards, src, rank: Rank::HighCard, freq: frequencies(values)};
         
         if is_straight(&mut hand) && is_flush(&hand) { hand.rank = Rank::StraightFlush }
@@ -201,7 +202,7 @@ impl<'a> PartialOrd for Hand<'a> {
 }
 
 pub fn winning_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
-    let mut hands = hands.iter().map(|&h| Hand::from_str(h)).collect::<Vec<Hand>>();
+    let mut hands = hands.iter().map(|&h| Hand::from_str(h)).collect::<Vec<_>>();
     hands.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Less));
     hands.reverse();
     if hands.len() > 1 {
