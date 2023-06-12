@@ -1,7 +1,7 @@
 use std::cmp::{PartialOrd, Ordering};
 use std::collections::{BTreeSet, HashMap, BTreeMap};
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 enum CardSuit {
     Club, Diamond, Heart, Spade,
 }
@@ -18,7 +18,7 @@ impl CardSuit {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum CardValue { // Ace may have a value of One
     One, Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten, Jack, Queen, King, Ace,
 }
@@ -45,7 +45,7 @@ impl CardValue {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 struct Card {
     value: CardValue,
     suit: CardSuit,
@@ -62,7 +62,7 @@ impl Card {
     }
 }
 
-#[derive(Debug, PartialEq, PartialOrd)]
+#[derive(PartialEq, PartialOrd)]
 enum Rank {
     HighCard,
     OnePair,
@@ -83,7 +83,7 @@ struct Hand<'a> {
     freq: BTreeMap<Tuple, Vec<CardValue>>,
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, PartialOrd, Ord)]
+#[derive(PartialEq, Eq, Hash, Clone, Copy, PartialOrd, Ord)]
 enum Tuple {
     Quad,
     Triad,
