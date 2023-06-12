@@ -1,6 +1,5 @@
 use std::cmp::{PartialOrd, Ordering};
 use std::collections::{BTreeSet, HashMap, BTreeMap};
-use std::fmt;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 enum CardSuit {
@@ -84,12 +83,6 @@ struct Hand<'a> {
     freq: BTreeMap<Tuple, Vec<CardValue>>,
 }
 
-impl fmt::Debug for Hand<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?} ({})", self.rank, self.src)
-    }
-}
-
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, PartialOrd, Ord)]
 enum Tuple {
     Quad,
@@ -100,10 +93,10 @@ enum Tuple {
 
 fn frequencies(values: Vec<CardValue>) -> BTreeMap<Tuple, Vec<CardValue>> {
     let mut h1 = HashMap::<CardValue, u8>::new();
+    let mut h2: HashMap<Tuple, BTreeSet<CardValue>> = HashMap::new();
     for v in values {
         h1.entry(v).and_modify(|count| *count += 1).or_insert(1);
     }
-    let mut h2: HashMap<Tuple, BTreeSet<CardValue>> = HashMap::new();
     for (k, count) in h1 {
         h2.entry(match count {
             1 => Tuple::Single,
@@ -119,63 +112,64 @@ fn frequencies(values: Vec<CardValue>) -> BTreeMap<Tuple, Vec<CardValue>> {
 }
 
 
-fn is_straight(hand: &mut Hand) -> bool {
-    if hand.cards.iter().zip(hand.cards.iter().skip(1)).all(|(c1, c2)| c1.is_adjacent(c2)) {
+fn is_straight(cards: &mut BTreeSet<Card>) -> bool {
+    if cards.iter().zip(cards.iter().skip(1)).all(|(c1, c2)| c1.is_adjacent(c2)) {
         return true
     }
     // check with Ace as value One
-    let mut new_cards = hand.cards.iter()
+    let mut new_cards = cards.iter()
         .map(|&c| if c.value == CardValue::Ace { Card { value: CardValue::One, ..c } } else { c }).collect::<BTreeSet<_>>();
     if new_cards.iter().zip(new_cards.iter().skip(1)).all(|(c1, c2)| c1.is_adjacent(c2)) {
         // replace Ace value with One
-        hand.cards.clear();
-        hand.cards.append(&mut new_cards);
+        cards.clear();
+        cards.append(&mut new_cards);
         return true
     }
     false
 }
 
-fn is_flush(hand: &Hand) -> bool {
-    hand.cards.iter().zip(hand.cards.iter().skip(1)).all(|(c1, c2)| c1.suit == c2.suit)
+fn is_flush(cards: &BTreeSet<Card>) -> bool {
+    cards.iter().zip(cards.iter().skip(1)).all(|(c1, c2)| c1.suit == c2.suit)
 }
 
-fn is_four_of_a_kind(hand: &Hand) -> bool {
-    hand.freq.contains_key(&Tuple::Quad)
+fn is_four_of_a_kind(freq: &BTreeMap<Tuple, Vec<CardValue>>) -> bool {
+    freq.contains_key(&Tuple::Quad)
 }
 
-fn have_one_pair(hand: &Hand) -> bool {
-    hand.freq.contains_key(&Tuple::Pair)
+fn have_one_pair(freq: &BTreeMap<Tuple, Vec<CardValue>>) -> bool {
+    freq.contains_key(&Tuple::Pair)
 }
 
-fn have_two_pair(hand: &Hand) -> bool {
-    hand.freq.contains_key(&Tuple::Pair) && hand.freq.get(&Tuple::Pair).unwrap().len() == 2
+fn have_two_pair(freq: &BTreeMap<Tuple, Vec<CardValue>>) -> bool {
+    freq.contains_key(&Tuple::Pair) && freq.get(&Tuple::Pair).unwrap().len() == 2
 }
 
-fn have_three_of_a_kind(hand: &Hand) -> bool {
-    hand.freq.contains_key(&Tuple::Triad)
+fn have_three_of_a_kind(freq: &BTreeMap<Tuple, Vec<CardValue>>) -> bool {
+    freq.contains_key(&Tuple::Triad)
 }
 
-fn is_full_house(hand: &Hand) -> bool {
-    have_three_of_a_kind(hand) && have_one_pair(hand)
+fn is_full_house(freq: &BTreeMap<Tuple, Vec<CardValue>>) -> bool {
+    have_three_of_a_kind(freq) && have_one_pair(freq)
 }
 
 impl Hand<'_> {
     fn from_str(src: &str) -> Hand {
-        let cards_str = src.split(" ").collect::<Vec<_>>();
-        if cards_str.len() != 5 { panic!("Cannot find 5 cards in the hand: {}", src) }
-        let cards: BTreeSet<Card> = cards_str.iter().map(|&s| Card::from_str(s)).collect();
-        let values = cards.iter().map(|c| c.value).collect::<Vec<_>>();
-        let mut hand = Hand {cards, src, rank: Rank::HighCard, freq: frequencies(values)};
-        
-        if is_straight(&mut hand) && is_flush(&hand) { hand.rank = Rank::StraightFlush }
-        else if is_four_of_a_kind(&hand) { hand.rank = Rank::FourOfAKind }
-        else if is_full_house(&hand) { hand.rank = Rank::FullHouse }
-        else if is_flush(&hand) { hand.rank = Rank::Flush }
-        else if is_straight(&mut hand) { hand.rank = Rank::Straight }
-        else if have_three_of_a_kind(&hand) { hand.rank = Rank::ThreeOFAKind }
-        else if have_two_pair(&hand) { hand.rank = Rank::TwoPair }
-        else if have_one_pair(&hand) { hand.rank = Rank::OnePair }
-        hand
+        let cards = src.split(" ").collect::<Vec<_>>();
+        if cards.len() != 5 { panic!("Cannot find 5 cards in the hand: {}", src) }
+        let mut cards = cards.iter().map(|&s| Card::from_str(s)).collect::<BTreeSet<Card>>();
+        let freq = frequencies(cards.iter().map(|c| c.value).collect::<Vec<_>>());
+        let rank = {
+            if is_straight(&mut cards) && is_flush(&cards) { Rank::StraightFlush }
+            else if is_four_of_a_kind(&freq) { Rank::FourOfAKind }
+            else if is_full_house(&freq) { Rank::FullHouse }
+            else if is_flush(&cards) { Rank::Flush }
+            else if is_straight(&mut cards) { Rank::Straight }
+            else if have_three_of_a_kind(&freq) { Rank::ThreeOFAKind }
+            else if have_two_pair(&freq) { Rank::TwoPair }
+            else if have_one_pair(&freq) { Rank::OnePair }
+            else { Rank::HighCard }
+        };
+        Hand {cards, src, rank, freq}
     }
 }
 
@@ -204,8 +198,8 @@ impl<'a> PartialOrd for Hand<'a> {
 pub fn winning_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
     let mut hands = hands.iter().map(|&h| Hand::from_str(h)).collect::<Vec<_>>();
     hands.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Less));
-    hands.reverse();
     if hands.len() > 1 {
+        hands.reverse();
         let hand = &hands[0];
         hands.iter().filter(|&h| h.partial_cmp(hand).unwrap() == Ordering::Equal).map(|h| h.src).collect()
     } else {
