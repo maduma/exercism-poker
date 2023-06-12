@@ -23,24 +23,36 @@ enum CardValue { // Ace may have a value of One
     One, Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten, Jack, Queen, King, Ace,
 }
 
+
+fn number_card(i: usize) -> Result<CardValue, usize> {
+    const CARDVALUES: [CardValue; 14] = [
+        CardValue::One, CardValue::Two, CardValue::Three, CardValue::Four, CardValue::Five,
+        CardValue::Six, CardValue::Seven, CardValue::Eight, CardValue::Nine, CardValue::Ten,
+        CardValue::Jack, CardValue::Queen, CardValue::King, CardValue::Ace,
+    ];
+    
+    if (2..=10).contains(&i) {
+        Ok(CARDVALUES[i - 1])
+    } else { 
+        Err(i)
+    }
+}
+
+fn face_card(s: &str) -> Result<CardValue, ()> {
+    match s {
+        "J" => Ok(CardValue::Jack),
+        "Q" => Ok(CardValue::Queen),
+        "K" => Ok(CardValue::King),
+        "A" => Ok(CardValue::Ace),
+        _ => Err(()),
+    }
+}
+
 impl CardValue {
     fn from_str(s: &str) -> CardValue {
-        const CARDVALUES: [CardValue; 14] = [
-            CardValue::One, CardValue::Two, CardValue::Three, CardValue::Four, CardValue::Five,
-            CardValue::Six, CardValue::Seven, CardValue::Eight, CardValue::Nine, CardValue::Ten,
-            CardValue::Jack, CardValue::Queen, CardValue::King, CardValue::Ace,
-        ];
         match s.parse::<usize>() {
-            Ok(i) => {
-                if (2..=10).contains(&i) { CARDVALUES[i-1] } else { panic!("Bad value: {}", s) }
-            },
-            Err(_) => match s {
-                "J" => CardValue::Jack,
-                "Q" => CardValue::Queen,
-                "K" => CardValue::King,
-                "A" => CardValue::Ace,
-                _ => panic!("Bad value: {}", s),
-            }
+            Ok(i) => number_card(i).unwrap(),
+            Err(_) => face_card(s).unwrap(),
         }
     }
 }
