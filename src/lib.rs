@@ -57,7 +57,7 @@ impl Card {
         let value = &s[..s.len()-1];
         Card {suit: CardSuit::from_str(suit), value: CardValue::from_str(value)}
     }
-    fn is_adjacent(self: &Self, other: &Self) -> bool {
+    fn is_adjacent(&self, other: &Self) -> bool {
         (self.value as i8 - other.value as i8).abs() == 1
     }
 }
