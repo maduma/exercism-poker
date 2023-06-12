@@ -132,24 +132,8 @@ fn is_flush(cards: &BTreeSet<Card>) -> bool {
     cards.iter().zip(cards.iter().skip(1)).all(|(c1, c2)| c1.suit == c2.suit)
 }
 
-fn is_four_of_a_kind(freq: &BTreeMap<Tuple, Vec<CardValue>>) -> bool {
-    freq.contains_key(&Tuple::Quad)
-}
-
-fn have_one_pair(freq: &BTreeMap<Tuple, Vec<CardValue>>) -> bool {
-    freq.contains_key(&Tuple::Pair)
-}
-
 fn have_two_pair(freq: &BTreeMap<Tuple, Vec<CardValue>>) -> bool {
     freq.contains_key(&Tuple::Pair) && freq.get(&Tuple::Pair).unwrap().len() == 2
-}
-
-fn have_three_of_a_kind(freq: &BTreeMap<Tuple, Vec<CardValue>>) -> bool {
-    freq.contains_key(&Tuple::Triad)
-}
-
-fn is_full_house(freq: &BTreeMap<Tuple, Vec<CardValue>>) -> bool {
-    have_three_of_a_kind(freq) && have_one_pair(freq)
 }
 
 impl Hand<'_> {
@@ -160,13 +144,13 @@ impl Hand<'_> {
         let freq = frequencies(cards.iter().map(|c| c.value).collect::<Vec<_>>());
         let rank = {
             if is_straight(&mut cards) && is_flush(&cards) { Rank::StraightFlush }
-            else if is_four_of_a_kind(&freq) { Rank::FourOfAKind }
-            else if is_full_house(&freq) { Rank::FullHouse }
+            else if freq.contains_key(&Tuple::Quad) { Rank::FourOfAKind }
+            else if freq.contains_key(&Tuple::Triad) && freq.contains_key(&Tuple::Pair) { Rank::FullHouse }
             else if is_flush(&cards) { Rank::Flush }
             else if is_straight(&mut cards) { Rank::Straight }
-            else if have_three_of_a_kind(&freq) { Rank::ThreeOFAKind }
+            else if freq.contains_key(&Tuple::Triad) { Rank::ThreeOFAKind }
             else if have_two_pair(&freq) { Rank::TwoPair }
-            else if have_one_pair(&freq) { Rank::OnePair }
+            else if freq.contains_key(&Tuple::Pair) { Rank::OnePair }
             else { Rank::HighCard }
         };
         Hand {cards, src, rank, freq}
