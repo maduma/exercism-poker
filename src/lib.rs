@@ -112,20 +112,22 @@ fn frequencies(values: Vec<CardValue>) -> BTreeMap<Tuple, Vec<CardValue>> {
 }
 
 
+fn ace_as_one(cards: &BTreeSet<Card>) -> BTreeSet<Card> {
+    cards.iter()
+        .map(|&c| if c.value == CardValue::Ace { Card { value: CardValue::One, ..c } } else { c }).collect::<BTreeSet<_>>()
+}
+
 fn is_straight(cards: &mut BTreeSet<Card>) -> bool {
-    if cards.iter().zip(cards.iter().skip(1)).all(|(c1, c2)| c1.is_adjacent(c2)) {
-        return true
+    cards.iter().zip(cards.iter().skip(1)).all(|(c1, c2)| c1.is_adjacent(c2)) || {
+        let mut alt_cards = ace_as_one(cards);
+        if alt_cards.iter().zip(alt_cards.iter().skip(1)).all(|(c1, c2)| c1.is_adjacent(c2)) {
+            cards.clear();
+            cards.append(&mut alt_cards);
+            true
+        } else {
+            false
+        }
     }
-    // check with Ace as value One
-    let mut new_cards = cards.iter()
-        .map(|&c| if c.value == CardValue::Ace { Card { value: CardValue::One, ..c } } else { c }).collect::<BTreeSet<_>>();
-    if new_cards.iter().zip(new_cards.iter().skip(1)).all(|(c1, c2)| c1.is_adjacent(c2)) {
-        // replace Ace value with One
-        cards.clear();
-        cards.append(&mut new_cards);
-        return true
-    }
-    false
 }
 
 fn is_flush(cards: &BTreeSet<Card>) -> bool {
