@@ -7,13 +7,13 @@ enum CardSuit {
 }
 
 impl CardSuit {
-    fn from_str(s: &str) -> CardSuit {
+    fn from_str(s: &str) -> Result<CardSuit, ()> {
         match s {
-            "C" => CardSuit::Club,
-            "D" => CardSuit::Diamond,
-            "H" => CardSuit::Heart,
-            "S" => CardSuit::Spade,
-            _ => panic!("Bad suit: {}", s),
+            "C" => Ok(CardSuit::Club),
+            "D" => Ok(CardSuit::Diamond),
+            "H" => Ok(CardSuit::Heart),
+            "S" => Ok(CardSuit::Spade),
+            _ => Err(()),
         }
     }
 }
@@ -24,7 +24,7 @@ enum CardValue { // Ace may have a value of One
 }
 
 
-fn number_card(i: usize) -> Result<CardValue, usize> {
+fn number_card(i: usize) -> Result<CardValue, ()> {
     const CARDVALUES: [CardValue; 14] = [
         CardValue::One, CardValue::Two, CardValue::Three, CardValue::Four, CardValue::Five,
         CardValue::Six, CardValue::Seven, CardValue::Eight, CardValue::Nine, CardValue::Ten,
@@ -34,7 +34,7 @@ fn number_card(i: usize) -> Result<CardValue, usize> {
     if (2..=10).contains(&i) {
         Ok(CARDVALUES[i - 1])
     } else { 
-        Err(i)
+        Err(())
     }
 }
 
@@ -49,10 +49,10 @@ fn face_card(s: &str) -> Result<CardValue, ()> {
 }
 
 impl CardValue {
-    fn from_str(s: &str) -> CardValue {
+    fn from_str(s: &str) -> Result<CardValue, ()> {
         match s.parse::<usize>() {
-            Ok(i) => number_card(i).unwrap(),
-            Err(_) => face_card(s).unwrap(),
+            Ok(i) => number_card(i),
+            Err(_) => face_card(s),
         }
     }
 }
@@ -64,10 +64,16 @@ struct Card {
 }
 
 impl Card {
-    fn from_str(s: &str) -> Card {
+    fn from_str(s: &str) -> Result<Card, ()> {
         let suit = &s[s.len()-1..];
         let value = &s[..s.len()-1];
-        Card {suit: CardSuit::from_str(suit), value: CardValue::from_str(value)}
+        let suit = CardSuit::from_str(suit);
+        let value = CardValue::from_str(value);
+        if suit.is_ok() && value.is_ok() {
+            Ok(Card {suit: suit.unwrap(), value: value.unwrap()})
+        } else {
+            Err(())
+        }
     }
     fn is_adjacent(&self, other: &Self) -> bool {
         (self.value as i8 - other.value as i8).abs() == 1
@@ -103,7 +109,7 @@ enum Tuple {
     Single,
 }
 
-fn frequencies(values: Vec<CardValue>) -> BTreeMap<Tuple, Vec<CardValue>> {
+fn frequencies(values: Vec<CardValue>) -> Result<BTreeMap<Tuple, Vec<CardValue>>, ()> {
     let mut h1 = HashMap::<CardValue, u8>::new();
     let mut h2: HashMap<Tuple, BTreeSet<CardValue>> = HashMap::new();
     for v in values {
@@ -115,12 +121,12 @@ fn frequencies(values: Vec<CardValue>) -> BTreeMap<Tuple, Vec<CardValue>> {
             2 => Tuple::Pair,
             3 => Tuple::Triad,
             4 => Tuple::Quad,
-            _ => panic!("More that 4 cards with the same value!"),
+            _ => { return Err(()) },
         }).or_insert(BTreeSet::new()).insert(k);
     }
-    h2.into_iter()
+    Ok(h2.into_iter()
         .map(|(k, v)| (k, v.into_iter().rev().collect::<Vec<_>>()))
-        .collect::<BTreeMap<Tuple, Vec<CardValue>>>()
+        .collect::<BTreeMap<Tuple, Vec<CardValue>>>())
 }
 
 
@@ -151,11 +157,14 @@ fn have_two_pair(freq: &BTreeMap<Tuple, Vec<CardValue>>) -> bool {
 }
 
 impl Hand<'_> {
-    fn from_str(src: &str) -> Hand {
+    fn from_str(src: &str) -> Result<Hand, ()> {
         let cards = src.split(' ').collect::<Vec<_>>();
-        if cards.len() != 5 { panic!("Cannot find 5 cards in the hand: {}", src) }
-        let mut cards = cards.iter().map(|&s| Card::from_str(s)).collect::<BTreeSet<Card>>();
-        let freq = frequencies(cards.iter().map(|c| c.value).collect::<Vec<_>>());
+        if cards.len() != 5 { return Err(()) }
+        let cards: Result<BTreeSet<Card>, ()> = cards.iter().map(|&s| Card::from_str(s)).collect();
+        if cards.is_err() { return Err(()) }
+        let mut cards = cards.unwrap();
+        let values = cards.iter().map(|c| c.value).collect::<Vec<_>>();
+        let freq = frequencies(values)?;
         let rank = {
             if is_straight(&mut cards) && is_flush(&cards) { Rank::StraightFlush }
             else if freq.contains_key(&Tuple::Quad) { Rank::FourOfAKind }
@@ -167,7 +176,7 @@ impl Hand<'_> {
             else if freq.contains_key(&Tuple::Pair) { Rank::OnePair }
             else { Rank::HighCard }
         };
-        Hand {cards, src, rank, freq}
+        Ok(Hand {cards, src, rank, freq})
     }
 }
 
@@ -200,7 +209,9 @@ impl<'a> Ord for Hand<'a> {
 }
 
 pub fn winning_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
-    let mut hands = hands.iter().map(|&h| Hand::from_str(h)).collect::<Vec<_>>();
+    let hands: Result<Vec<_>, ()> = hands.iter().map(|&h| Hand::from_str(h)).collect();
+    if hands.is_err() { panic!("Error, check input string") }
+    let mut hands = hands.unwrap();
     if hands.len() > 1 {
         hands.sort();
         hands.reverse();
