@@ -32,7 +32,7 @@ impl CardValue {
         ];
         match s.parse::<usize>() {
             Ok(i) => {
-                if i >=2 && i <=10 { CARDVALUES[i-1] } else { panic!("Bad value: {}", s) }
+                if (2..=10).contains(&i) { CARDVALUES[i-1] } else { panic!("Bad value: {}", s) }
             },
             Err(_) => match s {
                 "J" => CardValue::Jack,
@@ -62,7 +62,7 @@ impl Card {
     }
 }
 
-#[derive(PartialEq, PartialOrd)]
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
 enum Rank {
     HighCard,
     OnePair,
@@ -75,7 +75,7 @@ enum Rank {
     StraightFlush,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq)]
 struct Hand<'a> {
     cards: BTreeSet<Card>,
     src: &'a str,
@@ -83,7 +83,7 @@ struct Hand<'a> {
     freq: BTreeMap<Tuple, Vec<CardValue>>,
 }
 
-#[derive(PartialEq, Eq, Hash, Clone, Copy, PartialOrd, Ord)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum Tuple {
     Quad,
     Triad,
@@ -140,7 +140,7 @@ fn have_two_pair(freq: &BTreeMap<Tuple, Vec<CardValue>>) -> bool {
 
 impl Hand<'_> {
     fn from_str(src: &str) -> Hand {
-        let cards = src.split(" ").collect::<Vec<_>>();
+        let cards = src.split(' ').collect::<Vec<_>>();
         if cards.len() != 5 { panic!("Cannot find 5 cards in the hand: {}", src) }
         let mut cards = cards.iter().map(|&s| Card::from_str(s)).collect::<BTreeSet<Card>>();
         let freq = frequencies(cards.iter().map(|c| c.value).collect::<Vec<_>>());
@@ -181,13 +181,19 @@ impl<'a> PartialOrd for Hand<'a> {
     }
 }
 
+impl<'a> Ord for Hand<'a> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap()
+    }
+}
+
 pub fn winning_hands<'a>(hands: &[&'a str]) -> Vec<&'a str> {
     let mut hands = hands.iter().map(|&h| Hand::from_str(h)).collect::<Vec<_>>();
-    hands.sort_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Less));
     if hands.len() > 1 {
+        hands.sort();
         hands.reverse();
         let hand = &hands[0];
-        hands.iter().filter(|&h| h.partial_cmp(hand).unwrap() == Ordering::Equal).map(|h| h.src).collect()
+        hands.iter().filter(|&h| h.cmp(hand) == Ordering::Equal).map(|h| h.src).collect()
     } else {
         hands.iter().map(|h| h.src).collect()
     }
