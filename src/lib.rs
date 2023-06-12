@@ -107,7 +107,7 @@ fn frequencies(values: Vec<CardValue>) -> BTreeMap<Tuple, Vec<CardValue>> {
     let mut h1 = HashMap::<CardValue, u8>::new();
     let mut h2: HashMap<Tuple, BTreeSet<CardValue>> = HashMap::new();
     for v in values {
-        h1.entry(v).and_modify(|count| *count += 1).or_insert(1);
+        *h1.entry(v).or_insert(0) += 1;
     }
     for (k, count) in h1 {
         h2.entry(match count {
